@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wild Card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&amp;display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top" id="top">
+  <span class="brand"><img class="wm" src="art/wordmark.png" alt="Wild Card"><span class="mascot" id="mascot"></span></span>
+  <nav class="menu" aria-label="Main">
+    <a class="on" href="#daily" data-mode="daily">Daily</a><a href="#gauntlet" data-mode="gauntlet">Gauntlet</a>
+    <a class="cta" href="https://github.com/thecavemanjon/wildcard/releases/latest">Get the patch</a>
+  </nav>
+</header>
+
+<div class="body">
+  <aside class="left">
+    <section class="for-daily" aria-label="This week">
+      <h2>This week</h2>
+      <div class="stops" id="stops"></div>
+    </section>
+    <section class="for-gauntlet" aria-label="This week's gauntlet">
+      <h2 id="g-title">Gauntlet</h2>
+      <p class="g-best" id="g-best" hidden></p>
+      <div class="stops" id="g-ladder"></div>
+    </section>
+  </aside>
+
+  <main class="play" id="play">
+    <div class="vs">
+      <span class="half"></span>
+      <img class="you" id="you-pic" alt="" style="visibility: hidden">
+      <span class="nm you"><small>Challenger</small><span id="you-name">You</span></span>
+      <span class="v">VS</span>
+      <span class="nm opp"><small>Today</small><span id="opp-name"></span></span>
+      <img class="opp" id="opp-pic" alt="">
+    </div>
+
+    <div class="screen" id="screen">
+      <canvas id="game"></canvas>
+      <div class="loader" id="loader">
+        <p class="loader-title" id="loader-title">Bring your Pokémon Emerald</p>
+        <p class="loader-note" id="loader-note">Your own English Emerald (.gba). Wild Card is patched onto it here, in this browser; nothing is uploaded.</p>
+        <div class="loader-buttons">
+          <button type="button" class="big" id="play-btn" hidden>Play</button>
+          <label class="big file" id="rom-label">Choose Emerald (.gba)<input type="file" id="rom-input" accept=".gba"></label>
+          <label class="file small" id="sav-label">Bring a save (.sav), optional<input type="file" id="sav-input" accept=".sav,.srm"></label>
+          <button type="button" class="small" id="reset-btn" hidden>Start over</button>
+        </div>
+        <p class="loader-error" id="loader-error" role="alert"></p>
+      </div>
+    </div>
+
+    <div class="pad" id="pad" aria-label="Game buttons">
+      <button type="button" class="sh l" data-btn="l">L</button>
+      <button type="button" class="sh r" data-btn="r">R</button>
+      <div class="dpad" id="dpad"><span class="arm across"></span><span class="arm down-up"></span><span class="hl" data-dir="up"></span><span class="hl" data-dir="down"></span><span class="hl" data-dir="left"></span><span class="hl" data-dir="right"></span></div>
+      <div class="sys"><button type="button" data-btn="select">SELECT</button><button type="button" data-btn="start">START</button></div>
+      <div class="ab"><button type="button" class="b" data-btn="b">B</button><button type="button" class="a" data-btn="a">A</button></div>
+    </div>
+
+    <div class="ctrl">
+      <span class="hint">Arrows move · X is A · Z is B · Enter is START · Shift is SELECT · A and S are L and R · Space speeds up</span>
+      <button type="button" id="share-btn" hidden>Share today's result</button>
+      <button type="button" id="rom-btn" disabled title="Your patched game, for Delta, a handheld or any GBA emulator">Download game</button>
+      <button type="button" id="save-btn" disabled>Download save</button>
+      <button type="button" id="full-btn">Full screen</button>
+    </div>
+  </main>
+
+  <aside class="right">
+    <section class="for-daily" aria-label="Your team">
+      <h2>Your team</h2>
+      <ol class="party" id="party"></ol>
+    </section>
+    <section class="for-gauntlet" aria-label="This week's draft">
+      <h2>The draft: pick three</h2>
+      <ol class="party" id="g-draft"></ol>
+    </section>
+    <section class="panel" id="how">
+      <h2>How to play</h2>
+      <p class="for-daily">Same opponent and same six for everyone today, and one attempt. Turn the PC on in your room and pick DAILY BATTLE.</p>
+      <p class="for-gauntlet">Same draft and ladder for everyone this week, and as many runs as you like. Turn the PC on and pick GAUNTLET: take three of the six, then climb. Get past round five for a shiny line.</p>
+    </section>
+  </aside>
+</div>
+
+<footer class="legal">Wild Card is an unofficial fan project. It isn't affiliated with or endorsed by Nintendo, Game Freak,
+  Creatures or The Pokémon Company, and Pokémon is their trademark. This site hosts no ROMs: bring your own Emerald.</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

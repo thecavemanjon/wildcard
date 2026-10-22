@@ -329,11 +329,18 @@ UnderdogBedroom_EventScript_BuyRoomThemeEnd::
 UnderdogBedroom_EventScript_PCMore::
 	message UnderdogBedroom_Text_PCWhatToDo
 	waitmessage
+#ifdef RELEASE
+	@ make release: the testing extras (TEST MONEY, TEST DAY) stay out of what players get
+	dynmultichoice 0, 0, FALSE, 2, 0, DYN_MULTICHOICE_CB_NONE, UnderdogBedroom_Text_FreePlay, UnderdogBedroom_Text_Back
+	switch VAR_RESULT
+	case 0, UnderdogBedroom_EventScript_FreePlay
+#else
 	dynmultichoice 0, 0, FALSE, 4, 0, DYN_MULTICHOICE_CB_NONE, UnderdogBedroom_Text_FreePlay, UnderdogBedroom_Text_TestMoney, UnderdogBedroom_Text_TestDay, UnderdogBedroom_Text_Back
 	switch VAR_RESULT
 	case 0, UnderdogBedroom_EventScript_FreePlay
 	case 1, UnderdogBedroom_EventScript_TestMoney
 	case 2, UnderdogBedroom_EventScript_TestDay
+#endif
 	goto UnderdogBedroom_EventScript_PCMenu @ BACK or B
 
 @ Today's random team, then off to Wallace's arena. The battle itself lives in the arena script.

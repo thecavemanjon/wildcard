@@ -9,8 +9,13 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="hero" id="hero"><img class="wm" src="art/wordmark.png" alt="Wild Card"></header>
-<nav class="nav" aria-label="Main"><a class="on" href="#play">Today</a><a href="#how">How to play</a></nav>
+<header class="top" id="top">
+  <span class="brand"><img class="wm" src="art/wordmark.png" alt="Wild Card"><span class="mascot" id="mascot"></span></span>
+  <nav class="menu" aria-label="Main">
+    <a class="on" href="#play">Today</a><a href="#how">How to play</a>
+    <a class="cta" href="https://github.com/thecavemanjon/wildcard/releases/latest">Get the patch</a>
+  </nav>
+</header>
 
 <div class="body">
   <aside class="left" aria-label="This week">
@@ -22,7 +27,7 @@
     <div class="vs">
       <span class="half"></span>
       <img class="you" id="you-pic" src="art/player_brendan.png" alt="">
-      <span class="nm you"><small>Challenger</small>You</span>
+      <span class="nm you"><small>Challenger</small><span id="you-name">You</span></span>
       <span class="v">VS</span>
       <span class="nm opp"><small>Today</small><span id="opp-name"></span></span>
       <img class="opp" id="opp-pic" alt="">
@@ -31,15 +36,23 @@
     <div class="screen" id="screen">
       <canvas id="game"></canvas>
       <div class="loader" id="loader">
-        <p class="loader-title" id="loader-title">Bring your Wild Card ROM</p>
-        <p class="loader-note" id="loader-note">It stays in this browser. Nothing is uploaded.</p>
+        <p class="loader-title" id="loader-title">Bring your Pokémon Emerald</p>
+        <p class="loader-note" id="loader-note">Your own English Emerald (.gba). Wild Card is patched onto it here, in this browser; nothing is uploaded.</p>
         <div class="loader-buttons">
           <button type="button" class="big" id="play-btn" hidden>Play</button>
-          <label class="big file" id="rom-label">Choose ROM (.gba)<input type="file" id="rom-input" accept=".gba"></label>
+          <label class="big file" id="rom-label">Choose Emerald (.gba)<input type="file" id="rom-input" accept=".gba"></label>
           <label class="file small" id="sav-label">Bring a save (.sav), optional<input type="file" id="sav-input" accept=".sav,.srm"></label>
         </div>
         <p class="loader-error" id="loader-error" role="alert"></p>
       </div>
+    </div>
+
+    <div class="pad" id="pad" aria-label="Game buttons">
+      <button type="button" class="sh l" data-btn="l">L</button>
+      <button type="button" class="sh r" data-btn="r">R</button>
+      <div class="dpad" id="dpad"><span class="arm across"></span><span class="arm down-up"></span><span class="hl" data-dir="up"></span><span class="hl" data-dir="down"></span><span class="hl" data-dir="left"></span><span class="hl" data-dir="right"></span></div>
+      <div class="sys"><button type="button" data-btn="select">SELECT</button><button type="button" data-btn="start">START</button></div>
+      <div class="ab"><button type="button" class="b" data-btn="b">B</button><button type="button" class="a" data-btn="a">A</button></div>
     </div>
 
     <div class="ctrl">

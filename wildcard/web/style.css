@@ -2,30 +2,34 @@
    colour, set by app.js from the results card's table. */
 :root { --t: #945221; --ink: #1b1b1f; --muted: #6b6b72; --line: #dcdcdc; }
 * { box-sizing: border-box; }
-body { margin: 0; background: #fff; color: var(--ink); font-family: 'Rubik', system-ui, sans-serif; }
+body { margin: 0; background: #fff; color: var(--ink); font-family: 'Rubik', system-ui, sans-serif;
+       touch-action: manipulation; -webkit-tap-highlight-color: transparent; } /* no double-tap zoom; pinch still works */
 img, canvas { image-rendering: pixelated; }
 button, .file { font: inherit; color: inherit; cursor: pointer; border: 0; }
 
-/* Banner: the title screen's stadium, clouds drifting as in the ROM */
-/* Whole-number scales only (2x here, 1x on phones), or the pixels come out uneven */
-.hero {
-  height: 190px; display: flex; justify-content: center; align-items: center; padding-bottom: 36px;
-  background-repeat: repeat-x; background-size: 512px 320px, 480px 320px; image-rendering: pixelated;
-  background-position: 0 -8px, center -8px; animation: drift 120s linear infinite;
-}
-@keyframes drift { to { background-position: -512px -8px, center -8px; } }
-@media (prefers-reduced-motion: reduce) { .hero { animation: none; } }
-.hero .wm { width: 375px; max-width: 80vw; }
+/* The top bar (look C): the wordmark at 2x and the menu on the title stadium's crowd, faint,
+   over navy, so the game sits high on the page. On phones the menu takes its own row. */
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px;
+       min-height: 76px; padding: 12px 16px 2px; color: #fff; border-bottom: 5px solid var(--t);
+       background: #1d1b2c 0 -150px / 512px 320px repeat-x; background-blend-mode: soft-light; image-rendering: pixelated; }
+.top .brand { display: flex; align-items: center; gap: 4px; }
+.top .wm { flex: none; height: 42px; }
+/* Today's opponent's type in a Pokémon (build_data.py TYPE_MASCOT): its party icon at 2x, both frames */
+.mascot { flex: none; width: 64px; height: 64px; margin: -14px 0 -8px -6px; /* a touch up and in, by eye */ background: 0 0 / 64px 128px no-repeat;
+          image-rendering: pixelated; animation: hop .5s step-end infinite;
+          filter: drop-shadow(2px 0 #fff) drop-shadow(-2px 0 #fff) drop-shadow(0 2px #fff) drop-shadow(0 -2px #fff); } /* a sticker outline, so dark ones (Duskull, Poochyena) show on navy */
+@keyframes hop { 50% { background-position: 0 -64px; } }
+@media (prefers-reduced-motion: reduce) { .mascot { animation: none; } }
+.menu { display: flex; align-items: center; gap: 2px; }
+.menu a { color: inherit; text-decoration: none; font-weight: 600; padding: 10px 14px; white-space: nowrap; }
+.menu a.on { color: #ffcb05; }
+.menu a.cta { margin-left: 6px; background: #ffcb05; color: var(--ink); font-weight: 700; border-radius: 4px; }
 @media (max-width: 700px) {
-  .hero { height: 120px; padding-bottom: 22px; background-size: 256px 160px, 240px 160px;
-          background-position: 0 0, center 0; }
-  @keyframes drift { to { background-position: -256px 0, center 0; } }
-  .hero .wm { width: 250px; }
+  .top { justify-content: center; padding-top: 14px; }
+  .menu { width: 100%; justify-content: safe center; overflow-x: auto; }
+  .menu a { padding: 10px 10px; font-size: 15px; }
 }
-
-.nav { display: flex; justify-content: center; gap: 4px; background: var(--t); padding: 0 16px; }
-.nav a { color: #fff; padding: 12px 16px; font-weight: 600; text-decoration: none; }
-.nav a.on { background: #fff; color: var(--t); }
+@media (max-width: 400px) { .menu a { padding: 10px 7px; font-size: 14px; } .menu a.cta { margin-left: 2px; } }
 
 /* Three columns when they fit; below that one column: the week as a strip, the game, then your six */
 .body { display: grid; grid-template-columns: 230px minmax(0, 1fr) 260px; grid-template-areas: "left play right";
@@ -85,10 +89,12 @@ p { margin: 0; }
      text-shadow: 3px 0 #fff, -3px 0 #fff, 0 3px #fff, 0 -3px #fff, 2px 2px #fff, -2px 2px #fff, 2px -2px #fff, -2px -2px #fff,
                   0 7px var(--ink); }
 @container (max-width: 679px) { .vs { --s: 96px; } .vs .nm { font-size: 20px; } .v { font-size: 44px; } }
-@container (max-width: 479px) {
-  .vs { --s: 64px; } .vs .nm { font-size: 16px; max-width: calc(50% - var(--s) - 52px); } .vs .nm small { display: none; }
-  .v { font-size: 32px; text-shadow: 2px 0 #fff, -2px 0 #fff, 0 2px #fff, 0 -2px #fff, 0 5px var(--ink); }
+@container (max-width: 479px) { /* phones: 1x sprites, smaller names and letters */
+  .vs { --s: 64px; } .vs .nm { font-size: 13px; max-width: calc(50% - var(--s) - 40px); } .vs .nm small { display: none; }
+  .vs .nm.you { left: calc(var(--s) + 16px); } .vs .nm.opp { right: calc(var(--s) + 16px); }
+  .v { font-size: 28px; text-shadow: 2px 0 #fff, -2px 0 #fff, 0 2px #fff, 0 -2px #fff, 0 5px var(--ink); }
 }
+@container (max-width: 299px) { .vs .nm { display: none; } } /* no room at all: the week strip names them */
 
 /* The game */
 .screen { position: relative; background: #000; aspect-ratio: 3 / 2; border-radius: 4px; overflow: hidden; }
@@ -106,6 +112,36 @@ p { margin: 0; }
 .small { color: #b8b8c0; font-size: 14px; text-decoration: underline; padding: 8px; }
 .file input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .file:focus-within { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* On-screen buttons, for touch screens only: L and R, the D-pad (one surface, so a thumb can
+   slide between directions and diagonals), SELECT and START, B and A. */
+.pad { display: none; position: relative; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px;
+       padding: 34px 4px 6px; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none; }
+@media (pointer: coarse) {
+  .pad { display: grid; } .hint { display: none; }
+  /* a GBA has no touchscreen, and the emulator swallows touches on its canvas: let them scroll the page */
+  .screen canvas { pointer-events: none; }
+}
+.pad button { font: inherit; border: 0; color: #fff; background: #2f3a5c; cursor: pointer; touch-action: none; }
+.pad button.down { background: var(--t); }
+.pad .sh { position: absolute; top: 0; width: 84px; height: 28px; border-radius: 8px 8px 4px 4px; font-weight: 700; font-size: 13px; }
+.pad .l { left: 4px; } .pad .r { right: 4px; }
+.dpad { position: relative; width: 120px; height: 120px; touch-action: none; }
+.dpad .arm { position: absolute; background: #2f3a5c; border-radius: 6px; }
+.dpad .across { left: 0; right: 0; top: 40px; height: 40px; }
+.dpad .down-up { top: 0; bottom: 0; left: 40px; width: 40px; }
+.dpad::after { content: ''; position: absolute; left: 40px; top: 40px; width: 40px; height: 40px; border-radius: 50%;
+               background: rgba(255, 255, 255, .12); }
+.dpad .hl { display: none; position: absolute; width: 40px; height: 40px; background: var(--t); border-radius: 6px; }
+/* data-dir and go-*, not up/down/left/right: .left and .right are the page's columns */
+.dpad .hl[data-dir=up] { left: 40px; top: 0; } .dpad .hl[data-dir=down] { left: 40px; top: 80px; }
+.dpad .hl[data-dir=left] { left: 0; top: 40px; } .dpad .hl[data-dir=right] { left: 80px; top: 40px; }
+.dpad.go-up [data-dir=up], .dpad.go-down [data-dir=down], .dpad.go-left [data-dir=left], .dpad.go-right [data-dir=right] { display: block; }
+.sys { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.sys button { padding: 6px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; letter-spacing: .06em; background: #6b6b72; }
+.ab { position: relative; width: 120px; height: 112px; }
+.ab button { position: absolute; width: 56px; height: 56px; border-radius: 50%; font-weight: 800; font-size: 22px; }
+.ab .a { right: 0; top: 0; } .ab .b { left: 0; bottom: 0; }
 
 .ctrl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .hint { flex-grow: 1; font-size: 13px; color: var(--muted); }

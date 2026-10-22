@@ -2,6 +2,7 @@
 // build_data.py), and the game itself in mGBA via Nostalgist. The ROM and the
 // save stay in this browser (IndexedDB); nothing is uploaded.
 import { Nostalgist } from 'https://cdn.jsdelivr.net/npm/nostalgist@0.22.0/+esm';
+import { applyBps, crc32 } from './bps.js';
 
 const $ = (id) => document.getElementById(id);
 const pad = (n) => String(n).padStart(2, '0');
@@ -21,7 +22,7 @@ async function loadSchedule() {
 function banner(now) {
   const h = now.getHours();
   const theme = h >= 6 && h < 17 ? 'day' : h >= 17 && h < 20 ? 'dusk' : 'night';
-  $('hero').style.backgroundImage = `url(art/clouds_${theme}.png), url(art/stadium_${theme}.png)`;
+  $('top').style.backgroundImage = `url(art/stadium_${theme}.png)`;
 }
 
 function stop(day, date, label, colour, isToday) {
@@ -62,6 +63,7 @@ function render(schedule, now) {
   document.documentElement.style.setProperty('--t', colour(today.slot));
   $('opp-name').textContent = titleCase(today.trainer);
   $('opp-pic').src = `art/trainer_${today.slot}.png`;
+  $('mascot').style.backgroundImage = `url(art/mascot_${today.slot}.png)`;
   document.title = `Wild Card: ${titleCase(today.trainer)} today`;
 
   const stops = $('stops');
@@ -74,7 +76,22 @@ function render(schedule, now) {
   party(today.team);
 }
 
-// Gender and wardrobe costume out of an Emerald save: two slots of 14 4 KB sectors, each
+// The game's own text encoding (include/constants/characters.h), enough for a player's name.
+const GAME_CHARS = { 0x00: ' ', 0x1B: 'é', 0x2D: '&', 0xAB: '!', 0xAC: '?', 0xAD: '.', 0xAE: '-', 0xB0: '…',
+                     0xB1: '“', 0xB2: '”', 0xB3: '‘', 0xB4: '’', 0xB5: '♂', 0xB6: '♀', 0xB8: ',', 0xBA: '/', 0xF0: ':' };
+function gameText(bytes) {
+  let out = '';
+  for (const b of bytes) {
+    if (b === 0xFF) break; // end of string
+    if (b >= 0xBB && b <= 0xD4) out += String.fromCharCode(65 + b - 0xBB);
+    else if (b >= 0xD5 && b <= 0xEE) out += String.fromCharCode(97 + b - 0xD5);
+    else if (b >= 0xA1 && b <= 0xAA) out += String.fromCharCode(48 + b - 0xA1);
+    else out += GAME_CHARS[b] ?? '';
+  }
+  return out.trim();
+}
+
+// Name, gender and wardrobe costume out of an Emerald save: two slots of 14 4 KB sectors, each
 // with its id, a signature and a save counter in the footer; the newer slot wins. SaveBlock2
 // is sector 0, SaveBlock1 runs on from sector 1, 3968 bytes of data per sector. The offsets
 // come from the game's headers (build_data.py).
@@ -95,12 +112,14 @@ function readPlayer(buf, layout) {
   if (!best) return null;
   const sector = best.sectors[1 + Math.floor(layout.costume / 3968)];
   return {
+    name: gameText(new Uint8Array(buf, best.sectors[0] + layout.name, 8)), // 7 letters and the end mark
     gender: v.getUint8(best.sectors[0] + layout.gender),
     costume: sector === undefined ? 0 : v.getUint16(sector + (layout.costume % 3968), true),
   };
 }
 
-// You in the VS bar: your costume, else your gender's look, else (no save yet) Emerald's boy.
+// You in the VS bar: your name (else YOU), and your costume, else your gender's look, else
+// (no save yet) Emerald's boy.
 let schedule = null;
 async function showYou() {
   if (!schedule) return;
@@ -108,6 +127,7 @@ async function showYou() {
   const me = sram && schedule.save ? readPlayer(await sram.arrayBuffer(), schedule.save) : null;
   $('you-pic').src = me && schedule.costumes.includes(me.costume) ? `art/costume_${me.costume}.png`
     : `art/player_${me && me.gender ? 'may' : 'brendan'}.png`;
+  $('you-name').textContent = me && me.name ? me.name : 'You';
 }
 
 // ---- the ROM and the save, kept in IndexedDB ----
@@ -136,13 +156,57 @@ async function putFile(key, blob) {
   return new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); });
 }
 
-// A GBA ROM has 0x96 at 0xB2 and a game code at 0xAC; Wild Card keeps Emerald's (BPEE).
-async function checkRom(file) {
-  const head = new Uint8Array(await file.slice(0, 0xC0).arrayBuffer());
-  if (file.size < 0x100000 || head[0xB2] !== 0x96) return 'That doesn\'t look like a GBA ROM.';
-  const code = String.fromCharCode(...head.slice(0xAC, 0xB0));
-  if (code !== 'BPEE') return `That ROM's game code is ${code}; Wild Card's is BPEE.`;
-  return '';
+// ---- the game: the player's own Emerald, patched into Wild Card here ----
+
+let patchInfo = null; // data/patch.json: the patch's CRCs and size (make_patch.py); none in a dev setup
+
+async function loadPatchInfo() {
+  const res = await fetch('data/patch.json', { cache: 'no-store' }).catch(() => null);
+  patchInfo = res && res.ok ? await res.json() : null;
+}
+
+// 'ready' (Wild Card, current), 'update' (an older Wild Card, and the Emerald to patch the new one
+// from), 'emerald' (only the Emerald so far) or 'none'.
+async function gameState() {
+  const [rom, romCrc, emerald] = await Promise.all([getFile('rom'), getFile('rom-crc'), getFile('emerald')]);
+  if (rom && (!patchInfo || romCrc === patchInfo.target_crc || !emerald)) return 'ready';
+  if (emerald) return rom ? 'update' : 'emerald';
+  return 'none';
+}
+
+// A GBA ROM has 0x96 at 0xB2 and a game code at 0xAC: Emerald's is BPEE, and Wild Card keeps it.
+// The CRC tells a clean Emerald (kept, to patch) from Wild Card already patched (used as it is).
+async function takeRom(file) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (bytes.length < 0x100000 || bytes[0xB2] !== 0x96) return 'That doesn\'t look like a GBA ROM.';
+  const code = String.fromCharCode(...bytes.subarray(0xAC, 0xB0));
+  if (code !== 'BPEE') return `That isn't Pokémon Emerald (its game code is ${code}).`;
+  if (!patchInfo) { await putFile('rom', file); return ''; } // a dev setup with no patch: take it as Wild Card
+  const crc = crc32(bytes);
+  if (crc === patchInfo.source_crc) { await putFile('emerald', file); return ''; }
+  if (crc === patchInfo.target_crc) { await putFile('rom', file); await putFile('rom-crc', crc); return ''; }
+  return 'That Emerald has been changed (a hack, another version or a bad dump). Wild Card needs a clean English Pokémon Emerald.';
+}
+
+async function patchEmerald() {
+  const emerald = new Uint8Array(await (await getFile('emerald')).arrayBuffer());
+  const res = await fetch('data/wildcard.bps');
+  if (!res.ok) throw new Error('The Wild Card patch didn\'t download. Try again in a moment.');
+  const reader = res.body.getReader(), parts = [];
+  for (let got = 0; ;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    parts.push(value);
+    got += value.length;
+    $('loader-note').textContent = `Downloading the patch: ${(got / 1e6).toFixed(1)} of ${(patchInfo.size / 1e6).toFixed(1)} MB`;
+  }
+  const patch = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+  parts.reduce((o, p) => (patch.set(p, o), o + p.length), 0);
+  $('loader-note').textContent = 'Patching…';
+  await new Promise((r) => setTimeout(r, 50)); // let that show before the work
+  const rom = applyBps(emerald, patch); // checks the Emerald, the patch and the result
+  await putFile('rom', new Blob([rom]));
+  await putFile('rom-crc', patchInfo.target_crc);
 }
 
 // ---- the emulator ----
@@ -174,15 +238,30 @@ async function saveNow() {
   }
 }
 
+// Play: patch first if the game needs making or updating, then start it.
 async function launch() {
+  $('play-btn').hidden = true;
+  $('rom-label').hidden = true;
+  $('sav-label').hidden = true;
+  $('loader-error').textContent = '';
+  if (['emerald', 'update'].includes(await gameState())) {
+    $('loader-title').textContent = 'Making Wild Card…';
+    try {
+      await patchEmerald();
+    } catch (e) {
+      showLoader(await gameState(), e.message);
+      return;
+    }
+  }
+  start();
+}
+
+async function start() {
   const rom = await getFile('rom');
   if (!rom) return;
   const sram = await getFile('sram');
   $('loader-title').textContent = 'Starting…';
   $('loader-note').textContent = 'The first time takes a few seconds while the emulator downloads.';
-  $('play-btn').hidden = true;
-  $('rom-label').hidden = true;
-  $('sav-label').hidden = true;
   try {
     emu = await Nostalgist.launch({
       element: $('game'),
@@ -199,7 +278,7 @@ async function launch() {
       },
     });
   } catch (e) {
-    showLoader(true, `The emulator didn't start: ${e.message || e}`);
+    showLoader('ready', `The emulator didn't start: ${e.message || e}`);
     return;
   }
   $('loader').hidden = true;
@@ -216,17 +295,24 @@ async function launch() {
   setInterval(saveNow, SAVE_EVERY_MS);
 }
 
-function showLoader(hasRom, error = '') {
+const LOADER = {
+  none: ['Bring your Pokémon Emerald', 'Your own English Emerald (.gba). Wild Card is patched onto it here, in this browser; nothing is uploaded.'],
+  emerald: ['Ready to make Wild Card', 'Press Play: the patch downloads once and goes onto your Emerald here.'],
+  update: ['Wild Card has an update', 'Press Play to patch the new version onto your Emerald. Your save carries over.'],
+  ready: ['Ready when you are', 'Your game and save are kept in this browser.'],
+};
+
+function showLoader(state, error = '') {
+  const [title, note] = LOADER[state];
+  const ready = state !== 'none';
   $('loader').hidden = false;
-  $('loader-title').textContent = hasRom ? 'Ready when you are' : 'Bring your Wild Card ROM';
-  $('loader-note').textContent = hasRom
-    ? 'Your ROM and save are kept in this browser.'
-    : 'It stays in this browser. Nothing is uploaded.';
-  $('play-btn').hidden = !hasRom;
+  $('loader-title').textContent = title;
+  $('loader-note').textContent = note;
+  $('play-btn').hidden = !ready;
   $('rom-label').hidden = false;
-  $('rom-label').firstChild.textContent = hasRom ? 'Use a different ROM' : 'Choose ROM (.gba)';
-  $('rom-label').classList.toggle('big', !hasRom);
-  $('rom-label').classList.toggle('small', hasRom);
+  $('rom-label').firstChild.textContent = ready ? 'Use a different ROM' : 'Choose Emerald (.gba)';
+  $('rom-label').classList.toggle('big', !ready);
+  $('rom-label').classList.toggle('small', ready);
   $('sav-label').hidden = false;
   $('loader-error').textContent = error;
 }
@@ -234,10 +320,8 @@ function showLoader(hasRom, error = '') {
 $('rom-input').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
-  const problem = await checkRom(file);
-  if (problem) { showLoader(Boolean(await getFile('rom')), problem); return; }
-  await putFile('rom', file);
-  showLoader(true);
+  const problem = await takeRom(file);
+  showLoader(await gameState(), problem);
 });
 
 $('sav-input').addEventListener('change', async (e) => {
@@ -245,7 +329,7 @@ $('sav-input').addEventListener('change', async (e) => {
   if (!file) return;
   await putFile('sram', file);
   showYou();
-  showLoader(Boolean(await getFile('rom')), '');
+  showLoader(await gameState(), '');
   $('loader-note').textContent = `Save loaded (${file.name}). It replaces the one kept here.`;
 });
 
@@ -270,10 +354,75 @@ $('full-btn').addEventListener('click', () => {
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveNow(); });
 window.addEventListener('pagehide', saveNow);
 
+// ---- the on-screen buttons (touch screens only; .pad in style.css) ----
+
+function hold(button, down) {
+  if (!emu) return;
+  emu[down ? 'pressDown' : 'pressUp'](button); // the names are retroarchConfig's input_player1_*
+  if (down && navigator.vibrate) navigator.vibrate(8);
+}
+
+for (const el of document.querySelectorAll('.pad [data-btn]')) {
+  const up = () => {
+    if (!el.classList.contains('down')) return;
+    el.classList.remove('down');
+    hold(el.dataset.btn, false);
+  };
+  el.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    el.setPointerCapture(e.pointerId);
+    el.classList.add('down');
+    hold(el.dataset.btn, true);
+  });
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) el.addEventListener(type, up);
+}
+
+// The D-pad is one surface: the thumb's angle from its centre picks one of eight directions,
+// so sliding round it changes direction without lifting.
+const dpad = $('dpad');
+let dirs = new Set();
+function steer(e) {
+  const box = dpad.getBoundingClientRect();
+  const x = e.clientX - (box.left + box.width / 2), y = e.clientY - (box.top + box.height / 2);
+  const next = new Set();
+  if (Math.hypot(x, y) > box.width * 0.12) { // a small dead zone in the middle
+    const angle = Math.atan2(y, x) * 180 / Math.PI; // 0 is right, 90 is down
+    if (angle > -67.5 && angle < 67.5) next.add('right');
+    if (angle > 22.5 && angle < 157.5) next.add('down');
+    if (angle > 112.5 || angle < -112.5) next.add('left');
+    if (angle > -157.5 && angle < -22.5) next.add('up');
+  }
+  for (const d of dirs) if (!next.has(d)) { hold(d, false); dpad.classList.remove(`go-${d}`); }
+  for (const d of next) if (!dirs.has(d)) { hold(d, true); dpad.classList.add(`go-${d}`); }
+  dirs = next;
+}
+function letGo() {
+  for (const d of dirs) { hold(d, false); dpad.classList.remove(`go-${d}`); }
+  dirs = new Set();
+}
+dpad.addEventListener('pointerdown', (e) => { e.preventDefault(); dpad.setPointerCapture(e.pointerId); steer(e); });
+dpad.addEventListener('pointermove', (e) => { if (dpad.hasPointerCapture(e.pointerId)) steer(e); });
+for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) dpad.addEventListener(type, letGo);
+$('pad').addEventListener('contextmenu', (e) => e.preventDefault());
+// iPhone Safari zooms on a double tap of the D-pad (a plain div) whatever touch-action says;
+// cancelling the touch itself stops it, and the buttons run on pointer events, which still come.
+for (const type of ['touchstart', 'touchend']) $('pad').addEventListener(type, (e) => e.preventDefault(), { passive: false });
+
 // ---- start ----
 
-// ?dev (serve.py only): the repo's built ROM, and its save if this browser has none, then straight in.
-async function devStart() {
+// ?dev (serve.py only): the repo's dev build and its save (if this browser has none), straight in.
+// ?dev=patch: the player's way in, from the Emerald serve.py --emerald hands over: forgets the
+// game, takes the Emerald as if picked, and patches it on Play.
+async function devStart(mode) {
+  if (mode === 'patch') {
+    const emerald = await fetch('dev/emerald.gba');
+    if (!emerald.ok) { showLoader('none', 'Start serve.py with --emerald PATH for ?dev=patch.'); return; }
+    await putFile('rom', null);
+    await putFile('rom-crc', null);
+    const problem = await takeRom(await emerald.blob()); // before gameState(), which should see it
+    showLoader(await gameState(), problem);
+    return;
+  }
   const rom = await fetch('dev/rom.gba');
   if (!rom.ok) return;
   await putFile('rom', await rom.blob());
@@ -281,12 +430,15 @@ async function devStart() {
     const sav = await fetch('dev/save.sav');
     if (sav.ok) { await putFile('sram', await sav.blob()); showYou(); }
   }
-  launch();
+  start();
 }
 
 const now = new Date();
 loadSchedule()
   .then((s) => { schedule = s; render(s, now); showYou(); })
   .catch((e) => { $('stops').innerHTML = `<p class="note"></p>`; $('stops').firstChild.textContent = e.message; });
-getFile('rom').then((rom) => showLoader(Boolean(rom)));
-if (new URLSearchParams(location.search).has('dev')) devStart();
+const dev = new URLSearchParams(location.search).get('dev');
+loadPatchInfo().then(async () => {
+  showLoader(await gameState());
+  if (dev !== null) devStart(dev);
+});

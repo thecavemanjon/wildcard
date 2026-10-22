@@ -69,13 +69,17 @@ def slot_colours():
     return out
 
 
+def slot_trainers():
+    """Arena slot to TRAINER_ constant, from the sim's slot table."""
+    sim = open(os.path.join(GAME, 'src', 'wildcard_sim.c')).read()
+    return dict((int(s), t) for s, t in re.findall(r'\[\s*(\d+)\] = (TRAINER_\w+),', sim))
+
+
 def slot_pics():
     """Arena slot to trainer picture file, via the sim's slot table and trainers.party."""
-    sim = open(os.path.join(GAME, 'src', 'wildcard_sim.c')).read()
-    trainers = dict((int(s), t) for s, t in re.findall(r'\[\s*(\d+)\] = (TRAINER_\w+),', sim))
     party = open(os.path.join(GAME, 'src', 'data', 'trainers.party')).read()
     pics = {}
-    for slot, t in trainers.items():
+    for slot, t in slot_trainers().items():
         m = re.search(r'=== ' + t + r' ===\n(?:.*\n)*?Pic: (.+)', party)
         if m:
             pics[slot] = m.group(1).strip().lower().replace(' ', '_') + '.png'
@@ -102,20 +106,54 @@ def trainer_pic(const):
 
 
 def save_layout():
-    """Where the web page finds the player's gender and costume in a .sav, from the game's own headers."""
+    """Where the web page finds the player's name, gender and costume in a .sav, from the game's own headers."""
     probe = os.path.join(GAME, 'build', 'web_save_layout')
     with open(probe + '.c', 'w') as f:
         f.write('#include "global.h"\n'
                 'const u32 kVars = offsetof(struct SaveBlock1, vars);\n'
-                'const u32 kGender = offsetof(struct SaveBlock2, playerGender);\n')
+                'const u32 kGender = offsetof(struct SaveBlock2, playerGender);\n'
+                'const u32 kName = offsetof(struct SaveBlock2, playerName);\n')
     subprocess.run([os.path.join(os.environ.get('DEVKITARM', '/opt/devkitpro/devkitARM'), 'bin', 'arm-none-eabi-gcc'),
                     '-S', '-o', probe + '.s', '-iquote', 'include', '-DMODERN=1', '-DTESTING=0', '-DEMERALD',
                     '-std=gnu17', '-mthumb', '-mabi=apcs-gnu', '-march=armv4t', probe + '.c'], cwd=GAME, check=True)
     asm = open(probe + '.s').read()
-    word = lambda name: int(re.search(name + r':\s*\.word\s+(\d+)', asm).group(1))
+    # a zero comes out as `.space 4` rather than `.word 0`
+    word = lambda name: int(re.search(name + r':\s*\.(?:word\s+(\d+)|space\s+4)', asm).group(1) or 0)
     vars_h = open(os.path.join(GAME, 'include', 'constants', 'vars.h')).read()
     costume_var = int(re.search(r'#define VAR_UNDERDOG_COSTUME\s+(0x[0-9A-Fa-f]+)', vars_h).group(1), 16)
-    return {'gender': word('kGender'), 'costume': word('kVars') + (costume_var - 0x4000) * 2}
+    return {'gender': word('kGender'), 'name': word('kName'), 'costume': word('kVars') + (costume_var - 0x4000) * 2}
+
+
+# The little Pokémon beside the wordmark: one per type, and opponents without one type
+# get the baby of their ace.
+TYPE_MASCOT = {
+    'grass': 'turtwig', 'fire': 'torchic', 'water': 'oshawott', 'electric': 'pincurchin', 'ice': 'snom',
+    'rock': 'geodude', 'fighting': 'riolu', 'normal': 'wooloo', 'flying': 'swablu', 'psychic': 'ralts',
+    'dark': 'poochyena', 'ghost': 'gastly', 'dragon': 'gible', 'steel': 'beldum', 'poison': 'koffing',
+    'ground': 'diglett',
+}
+OPPONENT_TYPE = {  # by the TRAINER_ constant, without TRAINER_ and UNDERDOG_, longest match wins
+    'ROXANNE': 'rock', 'BRAWLY': 'fighting', 'WATTSON': 'electric', 'FLANNERY': 'fire', 'NORMAN': 'normal',
+    'WINONA': 'flying', 'TATE_AND_LIZA': 'psychic', 'JUAN': 'water', 'SIDNEY': 'dark', 'PHOEBE': 'ghost',
+    'GLACIA': 'ice', 'DRAKE': 'dragon', 'STEVEN': 'steel', 'BROCK': 'rock', 'MISTY': 'water',
+    'LT_SURGE': 'electric', 'ERIKA': 'grass', 'KOGA': 'poison', 'SABRINA': 'psychic', 'BLAINE': 'fire',
+    'GIOVANNI': 'ground', 'LORELEI': 'ice', 'BRUNO': 'fighting', 'AGATHA': 'ghost', 'LANCE': 'dragon',
+}
+OWN_MASCOT = {  # the rivals' slots are named for the player's starter, so theirs is the next one round
+    'MAXIE': 'numel', 'ARCHIE': 'carvanha', 'WALLACE': 'feebas', 'RED': 'pikachu', 'RED_ORIGINS': 'charmander',
+    'BLUE_SQUIRTLE': 'squirtle', 'BLUE_BULBASAUR': 'bulbasaur', 'BLUE_CHARMANDER': 'charmander',
+    'BRENDAN_LILYCOVE_TREECKO': 'torchic', 'BRENDAN_LILYCOVE_TORCHIC': 'mudkip', 'BRENDAN_LILYCOVE_MUDKIP': 'treecko',
+    'MAY_LILYCOVE_TREECKO': 'torchic', 'MAY_LILYCOVE_TORCHIC': 'mudkip', 'MAY_LILYCOVE_MUDKIP': 'treecko',
+}
+
+
+def mascot(trainer):
+    """The mascot's graphics/pokemon folder name for a TRAINER_ constant."""
+    name = trainer.removeprefix('TRAINER_').removeprefix('UNDERDOG_')
+    best = lambda table: max((k for k in table if name.startswith(k)), key=len, default=None)
+    if (k := best(OWN_MASCOT)):
+        return OWN_MASCOT[k]
+    return TYPE_MASCOT[OPPONENT_TYPE[best(OPPONENT_TYPE)]]
 
 
 def transparent(path, box=None):
@@ -171,7 +209,6 @@ def write_art(days, pics):
     import build_title as bt
     for theme in ('day', 'dusk', 'night'):
         bt.stadium_back(theme).convert('RGBA').save(os.path.join(ART, f'stadium_{theme}.png'))
-        bt.stadium_clouds(theme).save(os.path.join(ART, f'clouds_{theme}.png'))
     colours = bt.SUBTITLE_COLOURS[bt.SUBTITLE_COLOUR]
     wild, card = bt.subtitle_word('WILD', 20, 0, bands=colours[1]), bt.subtitle_word('CARD', 20, 0, bands=colours[2])
     mark = Image.new('RGBA', (wild.width + card.width - 3, max(wild.height, card.height)), (0, 0, 0, 0))
@@ -188,6 +225,16 @@ def write_art(days, pics):
             head(pic, file).save(os.path.join(ART, f'head_{slot}.png'))
     for who in ('brendan', 'may'):
         transparent(os.path.join(front, f'{who}.png')).save(os.path.join(ART, f'player_{who}.png'))
+    for slot, trainer in slot_trainers().items():  # both frames, as the party menu animates them
+        sheet = transparent(os.path.join(GAME, 'graphics', 'pokemon', mascot(trainer), 'icon.png'))
+        # icons stand low in their 32px frames: lift both frames so the first one's middle is the
+        # frame's, and every mascot lines up with the wordmark
+        top, bottom = sheet.crop((0, 0, 32, 32)).getchannel('A').getbbox()[1::2]
+        lift = (top + bottom) // 2 - 16
+        centred = Image.new('RGBA', sheet.size, (0, 0, 0, 0))
+        for frame in (0, 32):
+            centred.alpha_composite(sheet.crop((0, frame, 32, frame + 32)), (0, frame - lift))
+        centred.save(os.path.join(ART, f'mascot_{slot}.png'))
     for costume, const in costume_pics().items():
         transparent(trainer_pic(const)).save(os.path.join(ART, f'costume_{costume}.png'))
 

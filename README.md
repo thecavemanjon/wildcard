@@ -1,83 +1,86 @@
-# Wild Card
+<p align="center">
+  <img src="wildcard/readme/title.png" width="480" alt="The Pokémon Wild Card Version title screen">
+</p>
 
-A daily Pokémon battle, built as a Pokémon Emerald ROM hack. Every day there's one
-opponent, one random team of six at level 50, and one attempt. Everyone playing on
-the same date gets the same opponent and the same team, so you can compare
-results with friends.
+<h1 align="center">Pokémon Wild Card</h1>
 
-It's a fan project and isn't released yet. There's no patch to download; for now
-you build it from source (below).
+<p align="center">One opponent a day. One random team of six. One try.</p>
+
+<p align="center">
+  <!-- TODO: the site's address once it's live -->
+  <a href="#play"><b>Play in your browser</b></a> &nbsp;·&nbsp;
+  <a href="https://github.com/thecavemanjon/wildcard/releases/latest"><b>Download the patch</b></a>
+</p>
+
+> [!CAUTION]
+> **You need your own copy of Pokémon Emerald.** Wild Card is a patch, and it only
+> works on an English Pokémon Emerald ROM dumped from a cartridge you legally own.
+> This project contains no ROMs and will never link to one, so please don't ask for
+> one in issues.
+
+<table>
+  <tr>
+    <td><img src="wildcard/readme/stadium.png" width="240" alt="Steven's Wild Card Stadium, with the crowd and scrolling boards"></td>
+    <td><img src="wildcard/readme/intro.png" width="240" alt="The intro before a battle: Wallace against the player"></td>
+    <td><img src="wildcard/readme/battle.png" width="240" alt="A double battle against Roxanne"></td>
+  </tr>
+</table>
+
+Wild Card is a daily Pokémon battle built on Pokémon Emerald. The date picks your
+opponent and gives you six random Pokémon at level 50. You get one attempt, and
+everyone playing that day gets the same opponent and the same six, so you can
+compare results with friends.
+
+## Play
+
+**In your browser.** Open the site, pick your Emerald ROM once, and press Play. The
+page patches it in your browser and keeps it there with your save; nothing is
+uploaded. Phones get on-screen buttons.
+
+**In an emulator.** Download `wildcard.bps` from
+[Releases](https://github.com/thecavemanjon/wildcard/releases/latest) and apply it
+to your Emerald with [Rom Patcher JS](https://www.marcrobledo.com/RomPatcher.js/)
+or Flips. Play the result in an emulator that runs Emerald's clock, such as mGBA:
+the date your device reports is the date you play. A clean English Emerald has the
+SHA-1 `f3ae088181bf583e55daf962a92bb46f4f1d07b7`.
 
 ## What's in it
 
-- The daily battle. The date picks the opponent and your six, each with a
-  sensible moveset. Mondays and Tuesdays are gym leaders, Wednesdays and Thursdays
-  the Elite Four, Fridays Maxie, Archie or Giovanni, Saturdays a rival and Sundays
-  Wallace or Steven. You get one go; the game saves your result, your streak and a
-  results card you can share.
-- Rule days. Some dates add a twist for the whole battle: a terrain, Trick Room or
-  an inverse type chart.
-- Event days. Halloween, Christmas and Easter bring their own opponents and teams.
-- The gauntlet. A weekly run through a Kanto league: draft three of six, beat a
-  round, take one of their Pokémon if you want it, keep going. Red waits at round
-  ten. Wins earn shiny evolution lines.
-- Practice and free play. Fight any opponent with a date's team, or type a word to
-  seed a one-off battle.
-- A stadium for every battle, with a crowd.
-- A bedroom to come back to: a PC for the menus, followers bought in the shop,
-  room themes, costumes and a clock on the wall.
-
-## Playing it
-
-The game reads the real-time clock, the same way Emerald does for berries and
-tides, so play it in an emulator that supports Emerald's clock, such as mGBA. The
-date your device reports is the date you play.
+- **The daily battle.** Gym leaders early in the week, the Elite Four midweek,
+  Maxie, Archie or Giovanni on Fridays, a rival on Saturdays and Wallace or Steven
+  on Sundays. Win and your streak goes up; the results card is yours to share.
+- **Rule days and event days.** Some dates add a twist (a terrain, Trick Room, an
+  inverse type chart), and Halloween, Christmas and Easter bring their own battles.
+- **The gauntlet.** A weekly run through a Kanto league: draft three of six, swap in
+  one of theirs after a win if you like, and find Red at round ten. Reach round five
+  and you unlock a shiny evolution line.
+- **Practice and free play.** Fight anyone with a day's team, or type a word to seed
+  a one-off battle.
+- **Your room.** Spend your winnings on followers, costumes and room themes.
 
 ## Building
 
-You need devkitARM and the usual pokeemerald-expansion toolchain; see
-[INSTALL.md](INSTALL.md). Then:
-
-```
-make
-```
-
-That writes `pokeemerald.gba`. Don't change the ROM header: emulators use the game
-code to switch on the clock.
-
-Tests for the daily logic (seeds, teams, records, the gauntlet):
-
-```
-make check TESTS="Sundial"
-```
-
-Some code still uses older working names (`Underdog`, `Sundial`); they're internal
-only.
-
-## Where things are
-
-Our own code sits alongside the expansion's: `src/daily_underdog.c` (game glue),
-`src/sundial_*.c` (seeds, records, the results card, the shop),
-`src/wildcard_*.c` (the gauntlet, the balance sim). Everything else of ours, from
-design notes to art scripts and the playtest tools, is in [`wildcard/`](wildcard/).
-Edits to vanilla files are marked `// Daily Underdog:`.
+You need devkitARM and the usual pokeemerald-expansion toolchain
+([INSTALL.md](INSTALL.md)). `make release` builds the ROM players get, and
+`make check TESTS="Sundial"` runs the tests for the daily logic. Our code is in
+`src/daily_underdog.c`, `src/sundial_*.c` and `src/wildcard_*.c`, and our tools are
+in [`wildcard/`](wildcard/).
 
 ## Credits
 
 Built on [pokeemerald-expansion](https://github.com/rh-hideout/pokeemerald-expansion)
-by RHH (Rom Hacking Hideout), which is built on pret's
-[pokeemerald](https://github.com/pret/pokeemerald) decompilation:
+by RHH (Rom Hacking Hideout), which builds on pret's
+[pokeemerald](https://github.com/pret/pokeemerald) decompilation.
 
 ```
 Based off RHH's pokeemerald-expansion 1.17.2 https://github.com/rh-hideout/pokeemerald-expansion/
 ```
 
-Sprite artists and their terms are listed in [wildcard/CREDITS.md](wildcard/CREDITS.md).
-The expansion's own contributors are in [CREDITS.md](CREDITS.md).
+Sprite artists and their terms are in [wildcard/CREDITS.md](wildcard/CREDITS.md),
+and the expansion's contributors are in [CREDITS.md](CREDITS.md).
 
 ## Legal
 
-Wild Card is an unofficial fan project, not affiliated with or endorsed by
-Nintendo, Game Freak, Creatures or The Pokémon Company. Pokémon is their
-trademark. This repository contains no ROMs, and we will never distribute one: to
-play, you need your own copy of Pokémon Emerald.
+Wild Card is an unofficial fan project. It isn't affiliated with or endorsed by
+Nintendo, Game Freak, Creatures or The Pokémon Company, and Pokémon is their
+trademark.

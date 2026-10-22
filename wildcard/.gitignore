@@ -14,3 +14,4 @@ web/art/
 web/data/
 !web/*.js
 playtest/battle_log.lua
+release/out/

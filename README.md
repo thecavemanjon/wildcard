@@ -7,8 +7,7 @@
 <p align="center">One opponent a day. One random team of six. One try.</p>
 
 <p align="center">
-  <!-- TODO: the site's address once it's live -->
-  <a href="#play"><b>Play in your browser</b></a> &nbsp;·&nbsp;
+  <a href="https://thecavemanjon.github.io/wildcard/"><b>Play in your browser</b></a> &nbsp;·&nbsp;
   <a href="https://github.com/thecavemanjon/wildcard/releases/latest"><b>Download the patch</b></a>
 </p>
 
@@ -33,7 +32,7 @@ compare results with friends.
 
 ## Play
 
-**In your browser.** Open the site, pick your Emerald ROM once, and press Play. The
+**In your browser.** Open [the site](https://thecavemanjon.github.io/wildcard/), pick your Emerald ROM once, and press Play. The
 page patches it in your browser and keeps it there with your save; nothing is
 uploaded. Phones get on-screen buttons.
 

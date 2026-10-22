@@ -53,10 +53,14 @@ SHA-1 `f3ae088181bf583e55daf962a92bb46f4f1d07b7`.
   inverse type chart), and Halloween, Christmas and Easter bring their own battles.
 - **The gauntlet.** A weekly run through a Kanto league: draft three of six, swap in
   one of theirs after a win if you like, and find Red at round ten. Reach round five
-  and you unlock a shiny evolution line.
+  and you unlock a shiny evolution line. The site shows each week's draft and ladder.
 - **Practice and free play.** Fight anyone with a day's team, or type a word to seed
   a one-off battle.
 - **Your room.** Spend your winnings on followers, costumes and room themes.
+
+<p align="center">
+  <img src="wildcard/readme/room.png" width="288" alt="A themed bedroom with followers lounging on the rug">
+</p>
 
 ## Building
 

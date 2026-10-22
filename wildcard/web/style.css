@@ -156,6 +156,12 @@ p { margin: 0; }
 .party small { font-size: 11px; font-weight: 500; color: var(--muted); }
 .party .ty { margin-left: auto; display: flex; flex-direction: column; gap: 2px; }
 .party .ty img { width: 48px; height: 24px; }
+/* Daily or Gauntlet (the menu): each column swaps its block. In gauntlet mode the ladder to Red
+   sits where the week's opponents were (same metro line) and the draft where your six were. */
+body:not(.gauntlet) .for-gauntlet, body.gauntlet .for-daily { display: none; }
+.g-best { margin: -4px 0 10px; font-weight: 700; color: var(--t); }
+.stop.beaten { opacity: .45; }
+
 .panel { background: var(--t); color: #fff; padding: 14px; border-radius: 4px; }
 .panel h2 { opacity: .85; }
 .note { color: var(--muted); font-size: 14px; }

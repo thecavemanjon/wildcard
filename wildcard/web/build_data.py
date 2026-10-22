@@ -42,19 +42,35 @@ def run_rom(start, days):
     return open(out).read().splitlines()
 
 
+def type_list(t1, t2):
+    return [t1] if t1 == t2 else [t1, t2]
+
+
 def parse(lines):
-    days = {}
+    """The ROM's schedule lines: one per date (opponent, rule, event, your six), then a G| line
+    with that date's gauntlet week (draft and the ladder to Red; ReportGauntletWeek)."""
+    days, gauntlet = {}, {}
     for line in lines:
         f = line.split('|')
+        if f[0] == 'G':
+            y, m, d = (int(x) for x in f[1].split('-'))
+            star = f.index('*')
+            draft = [dict(zip(('species', 'name'), (int(s), n)), types=type_list(t1, t2))
+                     for s, n, t1, t2 in (x.split(',') for x in f[4:star])]
+            ladder = [{'round': r, 'slot': int(s), 'trainer': n, 'type': t}
+                      for r, (s, n, t) in enumerate((x.split(',') for x in f[star + 1:]), 1)]
+            gauntlet[f[2]] = {'week': int(f[3]), 'draft': draft, 'ladder': ladder}
+            days[f'{y:04d}-{m:02d}-{d:02d}']['week'] = f[2]
+            continue
         y, m, d = (int(x) for x in f[0].split('-'))
         team = []
         for mon in f[5:]:
             species, name, t1, t2, moves = mon.split(',')
             team.append({'species': int(species), 'name': name,
-                         'types': [t1] if t1 == t2 else [t1, t2], 'moves': moves.split('/') if moves else []})
+                         'types': type_list(t1, t2), 'moves': moves.split('/') if moves else []})
         days[f'{y:04d}-{m:02d}-{d:02d}'] = {'slot': int(f[1]), 'trainer': f[2], 'rule': f[3],
                                             'event': EVENTS.get(int(f[4]), ''), 'team': team}
-    return days
+    return days, gauntlet
 
 
 def slot_colours():
@@ -120,8 +136,10 @@ def save_layout():
     # a zero comes out as `.space 4` rather than `.word 0`
     word = lambda name: int(re.search(name + r':\s*\.(?:word\s+(\d+)|space\s+4)', asm).group(1) or 0)
     vars_h = open(os.path.join(GAME, 'include', 'constants', 'vars.h')).read()
-    costume_var = int(re.search(r'#define VAR_UNDERDOG_COSTUME\s+(0x[0-9A-Fa-f]+)', vars_h).group(1), 16)
-    return {'gender': word('kGender'), 'name': word('kName'), 'costume': word('kVars') + (costume_var - 0x4000) * 2}
+    var = lambda name: word('kVars') + (int(re.search(r'#define ' + name + r'\s+(0x[0-9A-Fa-f]+)', vars_h).group(1), 16)
+                                        - 0x4000) * 2
+    return {'gender': word('kGender'), 'name': word('kName'), 'costume': var('VAR_UNDERDOG_COSTUME'),
+            'gauntletWeek': var('VAR_GAUNTLET_WEEK'), 'gauntletBest': var('VAR_GAUNTLET_BEST')}
 
 
 # The little Pokémon beside the wordmark: one per type, and opponents without one type
@@ -196,13 +214,14 @@ def species_folder(species):
     base = os.path.join(GAME, 'graphics', 'pokemon')
     parts = name.lower().split('_')
     for cut in range(len(parts), 0, -1):
-        folder = os.path.join(base, '_'.join(parts[:cut]), *parts[cut:])
-        if os.path.exists(os.path.join(folder, 'icon.png')):
-            return folder
+        # the form's subfolder, else the base folder (a default form, e.g. SQUAWKABILLY_GREEN, has none)
+        for folder in (os.path.join(base, '_'.join(parts[:cut]), *parts[cut:]), os.path.join(base, '_'.join(parts[:cut]))):
+            if os.path.exists(os.path.join(folder, 'icon.png')):
+                return folder
     return None
 
 
-def write_art(days, pics):
+def write_art(days, pics, gauntlet):
     os.makedirs(ART, exist_ok=True)
     cwd = os.getcwd()
     os.chdir(GAME)  # the title builder reads graphics/ by relative path
@@ -239,13 +258,13 @@ def write_art(days, pics):
         transparent(trainer_pic(const)).save(os.path.join(ART, f'costume_{costume}.png'))
 
     types = set()
-    for species in sorted({m['species'] for day in days.values() for m in day['team']}):
+    mons = [m for day in days.values() for m in day['team']] + [m for w in gauntlet.values() for m in w['draft']]
+    for species in sorted({m['species'] for m in mons}):
         folder = species_folder(species)
         if folder:
             transparent(os.path.join(folder, 'icon.png'), (0, 0, 32, 32)).save(os.path.join(ART, f'icon_{species}.png'))
-    for day in days.values():
-        for m in day['team']:
-            types.update(m['types'])
+    for m in mons:
+        types.update(m['types'])
     for t in types:
         file = {'fighting': 'fight'}.get(t.lower(), t.lower())
         path = os.path.join(GAME, 'graphics', 'types', file + '.png')
@@ -258,7 +277,7 @@ def main():
     ap.add_argument('--start', default=(datetime.date.today() - datetime.timedelta(days=7)).isoformat())
     ap.add_argument('--days', type=int, default=120)
     args = ap.parse_args()
-    days = parse(run_rom(args.start, args.days))
+    days, gauntlet = parse(run_rom(args.start, args.days))
     pics = slot_pics()
     colours = slot_colours()
     os.makedirs(os.path.join(HERE, 'data'), exist_ok=True)
@@ -268,8 +287,8 @@ def main():
     with open(os.path.join(HERE, 'data', 'schedule.json'), 'w') as f:
         json.dump({'built': datetime.datetime.now().isoformat(timespec='seconds'), 'player': player,
                    'costumes': sorted(costume_pics()), 'save': save_layout(),
-                   'colours': colours, 'days': days}, f, separators=(',', ':'))
-    write_art(days, pics)
+                   'colours': colours, 'days': days, 'gauntlet': gauntlet}, f, separators=(',', ':'))
+    write_art(days, pics, gauntlet)
     print(f'{len(days)} days from {min(days)} to {max(days)}; art in {ART}')
 
 

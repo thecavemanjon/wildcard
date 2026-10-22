@@ -25,25 +25,31 @@ function banner(now) {
   $('top').style.backgroundImage = `url(art/stadium_${theme}.png)`;
 }
 
-function stop(day, date, label, colour, isToday) {
+// A stop on a metro line of faces: a day of the week, or a round of the gauntlet.
+function stop(slot, trainer, label, note, colour, big) {
   const el = document.createElement('div');
-  el.className = 'stop' + (isToday ? ' today' : '') + (day.event ? ' event' : '');
+  el.className = 'stop' + (big ? ' today' : '');
   el.style.setProperty('--c', colour);
-  const rule = day.event ? `${day.event} event` : day.rule ? titleCase(day.rule) : '';
-  el.innerHTML = `<span class="head" style="background-image:url(art/head_${day.slot}.png)"></span>
-    <span class="d"><span class="day"></span><span class="nm"></span>${rule ? '<span class="rule"></span>' : ''}</span>`;
-  el.querySelector('.day').textContent = isToday ? `${label} · today` : label;
-  el.querySelector('.nm').textContent = titleCase(day.trainer);
-  if (rule) el.querySelector('.rule').textContent = rule;
+  el.innerHTML = `<span class="head" style="background-image:url(art/head_${slot}.png)"></span>
+    <span class="d"><span class="day"></span><span class="nm"></span>${note ? '<span class="rule"></span>' : ''}</span>`;
+  el.querySelector('.day').textContent = label;
+  el.querySelector('.nm').textContent = titleCase(trainer);
+  if (note) el.querySelector('.rule').textContent = note;
   return el;
 }
 
-function party(team) {
-  const list = $('party');
+function day(day, label, colour, isToday) {
+  const el = stop(day.slot, day.trainer, isToday ? `${label} · today` : label,
+                  day.event ? `${day.event} event` : day.rule ? titleCase(day.rule) : '', colour, isToday);
+  el.classList.toggle('event', Boolean(day.event));
+  return el;
+}
+
+function party(team, list = $('party')) {
   list.replaceChildren();
   for (const mon of team) {
     const li = document.createElement('li');
-    li.title = mon.moves.join(', ');
+    li.title = (mon.moves || []).join(', ');
     li.innerHTML = `<img class="ic" src="art/icon_${mon.species}.png" alt="">
       <span class="nm"><span></span><small>Lv 50</small></span>
       <span class="ty">${mon.types.map((t) => `<img src="art/type_${t.toLowerCase()}.png" alt="${t}">`).join('')}</span>`;
@@ -51,6 +57,34 @@ function party(team) {
     list.append(li);
   }
 }
+
+// This week's gauntlet (build_data.py, from the ROM): the ladder to Red takes the week's place
+// on the left, and the draft of six takes your daily six's.
+const SHINY_ROUND = 5; // GAUNTLET_REWARD_ROUND: get this far and a shiny line unlocks
+function gauntlet(week, colour) {
+  if (!week) return;
+  $('g-title').textContent = `Gauntlet · week ${week.week}`;
+  $('g-ladder').replaceChildren(...week.ladder.map((r) => {
+    const type = r.type === 'None' ? '' : r.type;
+    const note = r.round === SHINY_ROUND ? [type, 'shiny line'].filter(Boolean).join(' · ') : type;
+    const el = stop(r.slot, r.trainer, `Round ${r.round}`, note, colour(r.slot), r.round === week.ladder.length);
+    el.dataset.round = r.round;
+    return el;
+  }));
+  party(week.draft, $('g-draft'));
+}
+
+// Daily or Gauntlet, from the menu: the same page either way, so the game keeps running.
+function setMode(mode) {
+  document.body.classList.toggle('gauntlet', mode === 'gauntlet');
+  for (const a of document.querySelectorAll('.menu [data-mode]')) a.classList.toggle('on', a.dataset.mode === mode);
+  history.replaceState(null, '', location.pathname + location.search + (mode === 'gauntlet' ? '#gauntlet' : ''));
+  if (mode === 'gauntlet') showYou(); // the ladder was hidden, so centre it on your round now
+}
+for (const a of document.querySelectorAll('.menu [data-mode]')) {
+  a.addEventListener('click', (e) => { e.preventDefault(); setMode(a.dataset.mode); });
+}
+setMode(location.hash === '#gauntlet' ? 'gauntlet' : 'daily');
 
 function render(schedule, now) {
   const today = schedule.days[iso(now)];
@@ -70,10 +104,11 @@ function render(schedule, now) {
   stops.replaceChildren();
   for (let i = 0; i < 7; i++) {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
-    const day = schedule.days[iso(d)];
-    if (day) stops.append(stop(day, d, `${DAYS[d.getDay()]} ${d.getDate()}`, colour(day.slot), i === 0));
+    const entry = schedule.days[iso(d)];
+    if (entry) stops.append(day(entry, `${DAYS[d.getDay()]} ${d.getDate()}`, colour(entry.slot), i === 0));
   }
   party(today.team);
+  gauntlet(schedule.gauntlet && schedule.gauntlet[today.week], colour);
 }
 
 // The game's own text encoding (include/constants/characters.h), enough for a player's name.
@@ -110,8 +145,14 @@ function readPlayer(buf, layout) {
     if (sectors[0] !== undefined && (!best || counter > best.counter)) best = { sectors, counter };
   }
   if (!best) return null;
+  const u16 = (offset) => {
+    const at = best.sectors[1 + Math.floor(offset / 3968)];
+    return at === undefined ? 0 : v.getUint16(at + (offset % 3968), true);
+  };
   const sector = best.sectors[1 + Math.floor(layout.costume / 3968)];
   return {
+    gauntletWeek: layout.gauntletWeek ? u16(layout.gauntletWeek) : 0,
+    gauntletBest: layout.gauntletBest ? u16(layout.gauntletBest) : 0,
     name: gameText(new Uint8Array(buf, best.sectors[0] + layout.name, 8)), // 7 letters and the end mark
     gender: v.getUint8(best.sectors[0] + layout.gender),
     costume: sector === undefined ? 0 : v.getUint16(sector + (layout.costume % 3968), true),
@@ -128,6 +169,15 @@ async function showYou() {
   $('you-pic').src = me && schedule.costumes.includes(me.costume) ? `art/costume_${me.costume}.png`
     : `art/player_${me && me.gender ? 'may' : 'brendan'}.png`;
   $('you-name').textContent = me && me.name ? me.name : 'You';
+  // the gauntlet: your furthest round this week, as the PC shows it (the save keeps it with its week)
+  const today = schedule.days[iso(new Date())];
+  const best = me && today && String(me.gauntletWeek) === today.week ? me.gauntletBest : 0;
+  $('g-best').hidden = !best;
+  $('g-best').textContent = `Your best this week: round ${best}`;
+  for (const li of $('g-ladder').children) li.classList.toggle('beaten', Number(li.dataset.round) < best);
+  // where the ladder is a sideways strip (phones), open it at the round you're on
+  const at = $('g-ladder').children[Math.max(best, 1) - 1];
+  if (at) $('g-ladder').scrollLeft = at.offsetLeft - ($('g-ladder').clientWidth - at.offsetWidth) / 2;
 }
 
 // ---- the ROM and the save, kept in IndexedDB ----

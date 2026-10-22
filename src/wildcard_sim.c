@@ -10,6 +10,7 @@
 #include "pokemon.h"
 #include "script_pokemon_util.h"
 #include "sundial_gauntlet.h"
+#include "sundial_record.h"
 #include "sundial_seed.h"
 #include "wildcard_gauntlet.h"
 #include "wildcard_sim.h"
@@ -430,6 +431,8 @@ static void OutText(const u8 *s)
     }
 }
 
+static void ReportGauntletWeek(void);
+
 // One line per date for the web player (wildcard/web/build_data.py):
 // date|slot|trainer|rule|event|species,name,type,type,move/move/move/move|... for the six
 static void ReportSchedule(void)
@@ -476,6 +479,56 @@ static void ReportSchedule(void)
                 Out("/");
             OutText(GetMoveName(move));
         }
+    }
+    Out("\n");
+    ReportGauntletWeek();
+}
+
+// A second line per date, for the web player's gauntlet: the date's week, that week
+// counted from launch (as the PC shows it), the six in the draft, then the ladder up
+// to Red: G|date|week|week from launch|species,name,type,type|...|*|slot,name,type|...
+static void ReportGauntletWeek(void)
+{
+    struct SundialMon draft[GAUNTLET_DRAFT_SIZE];
+    u32 i, week = Gauntlet_WeekNumber(Sundial_DayNumber(gWildcardSim.year, gWildcardSim.month, gWildcardSim.day));
+    u32 seed = Gauntlet_WeekSeed(week);
+
+    Out("G|");
+    OutNum(gWildcardSim.year);
+    Out("-");
+    OutNum(gWildcardSim.month);
+    Out("-");
+    OutNum(gWildcardSim.day);
+    Out("|");
+    OutNum(week);
+    Out("|");
+    OutNum(week - Gauntlet_WeekNumber(Sundial_DayNumber(LAUNCH_YEAR, LAUNCH_MONTH, LAUNCH_DAY)) + 1);
+    Gauntlet_Draft(seed, draft);
+    for (i = 0; i < GAUNTLET_DRAFT_SIZE; i++)
+    {
+        Out("|");
+        OutNum(draft[i].species);
+        Out(",");
+        OutText(GetSpeciesName(draft[i].species));
+        Out(",");
+        OutText(gTypesInfo[GetSpeciesType(draft[i].species, 0)].name);
+        Out(",");
+        OutText(gTypesInfo[GetSpeciesType(draft[i].species, 1)].name);
+    }
+    Out("|*");
+    for (i = 1; i <= GAUNTLET_RED_ROUND; i++)
+    {
+        enum SundialOpponent opponent = Gauntlet_Opponent(seed, i);
+        u32 slot;
+
+        DailyUnderdog_SetArenaOpponent(seed, opponent); // the arena slot the game would use
+        slot = VarGet(VAR_UNDERDOG_ARENA_SLOT);
+        Out("|");
+        OutNum(slot);
+        Out(",");
+        OutText(GetTrainerNameFromId(sSlotTrainers[slot]));
+        Out(",");
+        OutText(gTypesInfo[Gauntlet_OpponentType(opponent)].name);
     }
     Out("\n");
 }

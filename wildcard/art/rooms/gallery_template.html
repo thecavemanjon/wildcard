@@ -1,0 +1,79 @@
+<title>Wild Card Bedrooms</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: a single column of room "cartridges"; each shows its live window (day, sunset, night) beside its notes. */
+:root {
+  --bg: #eef0f6; --panel: #ffffff; --ink: #1d2033; --muted: #5d6280; --line: #d5d9e8; --accent: #e0484a; --chip: #e6e9f4;
+  --display: "Pixelify Sans", "Courier New", monospace; --body: "Atkinson Hyperlegible", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #12131c; --panel: #1b1d2a; --ink: #eceef8; --muted: #9ba0bf; --line: #2c2f44; --accent: #ff6b5e; --chip: #262a3d; color-scheme: dark } }
+:root[data-theme="dark"] { --bg: #12131c; --panel: #1b1d2a; --ink: #eceef8; --muted: #9ba0bf; --line: #2c2f44; --accent: #ff6b5e; --chip: #262a3d; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 56px; }
+main { max-width: 1080px; margin: 0 auto; display: grid; gap: 28px; }
+header h1 { font-family: var(--display); font-weight: 700; font-size: clamp(30px, 6vw, 48px); line-height: 1.05; margin: 0 0 10px; text-wrap: balance; }
+header p { margin: 0; color: var(--muted); max-width: 66ch; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: var(--chip); border-radius: 999px; padding: 3px 10px; font-size: 13px; color: var(--muted); }
+.room { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+.screen img { max-width: 432px; }
+@media (max-width: 760px) { .room { grid-template-columns: 1fr; } }
+.screen { display: grid; gap: 10px; min-width: 0; }
+.screen img { width: 100%; image-rendering: pixelated; border-radius: 4px; display: block; background: #000; aspect-ratio: 9 / 8; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tabs button { font: 600 13px var(--body); border: 1px solid var(--line); background: transparent; color: var(--ink); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+.tabs button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.notes { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.notes h2 { font-family: var(--display); font-size: 26px; margin: 0; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.notes h2 .id { font-family: var(--body); font-size: 13px; color: var(--muted); font-weight: 400; }
+.notes p { margin: 0; }
+.meta { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 14px; color: var(--muted); }
+.meta b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.bar { height: 6px; background: var(--chip); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+.bar i { display: block; height: 100%; background: var(--accent); }
+.foot { color: var(--muted); font-size: 14px; max-width: 70ch; }
+@media (prefers-reduced-motion: reduce) { .tabs button { transition: none; } }
+</style>
+<main>
+  <header>
+    <h1>Wild Card Bedrooms</h1>
+    <p>Twelve themes for the bedroom, kept in Emerald's own style: the same room, walls, floor and furniture, recoloured through the palette slots the room colours already use, then dressed with Emerald's secret base dolls and cushions, potted plants from Hoenn houses, and a small window on the free wall tile that follows the clock. Everything stays on the tiles it uses today. The last tab shows the bolder first draft of each, for comparison. Switch the time of day under each room; the last tab shows it lived in.</p>
+    <div class="legend"><span class="chip">9 × 8 tiles, like today's room</span><span class="chip">fixtures on the same tiles</span><span class="chip">Emerald art: dolls, cushions, plants</span><span class="chip">animated: the window</span><span class="chip">budget: 512 tiles per room</span></div>
+  </header>
+  <div id="rooms"></div>
+  <p class="foot">Mockups: the art and the animation are what goes into the game; the Pokémon and the player are placed for scale. Pick favourites (or mash two together) and they get built like the stadiums, sold at DECORATE alongside the room colours.</p>
+</main>
+<script>
+const ROOMS = /*ROOMS*/[];
+const TIMES = [['day', 'Day'], ['sunset', 'Sunset'], ['night', 'Night'], ['lived', 'With Pokémon'], ['bold', 'Bolder take']];
+const host = document.getElementById('rooms');
+host.style.display = 'grid'; host.style.gap = '20px';
+ROOMS.forEach((r, i) => {
+  const el = document.createElement('section');
+  el.className = 'room'; el.id = r.name;
+  const pct = Math.round(r.tiles / 512 * 100);
+  el.innerHTML = `
+    <div class="screen">
+      <img id="img-${r.name}" src="og_${r.name}_day.gif" alt="${r.title}, daytime">
+      <div class="tabs" role="group" aria-label="Time of day">${TIMES.map(([k, l], j) => `<button type="button" data-k="${k}" aria-pressed="${j === 0}">${l}</button>`).join('')}</div>
+    </div>
+    <div class="notes">
+      <h2>${r.title} <span class="id">#${String(i + 1).padStart(2, '0')} · ${r.name}</span></h2>
+      <p>${r.blurb}</p>
+      <div class="meta">
+        <span>Loungers</span><span>${r.mons}</span>
+        <span>Tiles used</span><span><b>${r.tiles}</b> of 512<div class="bar"><i style="width:${pct}%"></i></div></span>
+      </div>
+    </div>`;
+  el.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+    el.querySelectorAll('.tabs button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    const img = el.querySelector('img');
+    const k = b.dataset.k;
+    img.src = k === 'lived' ? `og_${r.name}.png` : k === 'bold' ? `${r.name}_day.gif` : `og_${r.name}_${k}.gif`;
+    img.alt = `${r.title}, ${b.textContent.toLowerCase()}`;
+  }));
+  host.appendChild(el);
+});
+</script>

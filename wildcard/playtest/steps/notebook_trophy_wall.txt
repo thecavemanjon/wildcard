@@ -1,0 +1,24 @@
+wait 400
+START
+wait 120
+A
+wait 300
+hold RIGHT 16
+wait 10
+UP
+wait 20
+A
+wait 40
+shot 01_record
+A
+wait 40
+shot 02_after_streaks
+A
+wait 40
+shot 03_trophyq
+A
+wait 120
+shot 04_wall
+A
+wait 120
+shot 05_back

@@ -1,0 +1,46 @@
+wait 400
+START
+wait 120
+A
+wait 300
+shiny 170
+setvar 404E 170
+hold LEFT 64
+wait 10
+hold UP 64
+wait 10
+shot 01_walk
+hold RIGHT 16
+wait 10
+UP
+wait 10
+wait 10
+A
+wait 60
+shot 02_picker
+A
+wait 60
+shot 03_question
+DOWN
+wait 10
+shot 04_normal_cursor
+A
+wait 60
+shot 05_followed_normal
+A
+wait 40
+UP
+wait 10
+A
+wait 60
+A
+wait 60
+shot 06_question_again
+A
+wait 60
+shot 07_shiny_again
+A
+wait 40
+hold DOWN 16
+wait 10
+shot 08_room

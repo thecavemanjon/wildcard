@@ -1,0 +1,31 @@
+wait 400
+START
+wait 120
+A
+wait 300
+UP
+wait 20
+A
+wait 60
+DOWN 4
+A
+wait 40
+DOWN 2
+wait 10
+shot 01_more
+A
+wait 60
+shot 02_moved
+A
+wait 60
+UP
+wait 20
+A
+wait 60
+DOWN 4
+A
+wait 40
+DOWN 2
+A
+wait 60
+shot 03_moved_again

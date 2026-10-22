@@ -1,0 +1,16 @@
+# Generated previews and caches
+art/costumes/out/
+__pycache__/
+art/sprites/out/
+art/title/out/
+art/stadiums/out/
+art/stadiums/web/
+art/stadiums/__pycache__/
+playtest/mgba/
+playtest/runs/
+art/rooms/out/
+art/rooms/__pycache__/
+web/art/
+web/data/
+!web/*.js
+playtest/battle_log.lua

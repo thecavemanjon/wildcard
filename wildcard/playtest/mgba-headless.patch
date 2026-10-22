@@ -1,0 +1,23 @@
+diff --git a/src/platform/headless-main.c b/src/platform/headless-main.c
+index 61110b1..8f820a4 100644
+--- a/src/platform/headless-main.c
++++ b/src/platform/headless-main.c
+@@ -114,6 +114,10 @@ int main(int argc, char * argv[]) {
+ 		goto argsExit;
+ 	}
+ 	core->init(core);
++	{ // local patch: give scripts a screen to screenshot
++		static mColor videoBuffer[256 * 256];
++		core->setVideoBuffer(core, videoBuffer, 240);
++	}
+ 	mCoreInitConfig(core, "headless");
+ 	mArgumentsApply(&args, NULL, 0, &core->config);
+ 
+@@ -178,6 +182,7 @@ int main(int argc, char * argv[]) {
+ 	}
+ #endif
+ 
++	mCoreAutoloadSave(core); // local patch: load the .sav beside the ROM
+ 	core->reset(core);
+ 
+ 	mArgumentsApplyFileLoads(&args, core);

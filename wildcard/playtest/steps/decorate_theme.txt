@@ -1,0 +1,30 @@
+wait 400
+START
+wait 120
+A
+wait 300
+setvar 40FB 65535
+UP
+wait 20
+A
+wait 60
+DOWN 3
+A
+wait 40
+DOWN
+A
+wait 60
+shot 01_list
+DOWN 6
+wait 10
+shot 02_cursor
+A
+wait 120
+shot 03a
+wait 200
+shot 03b
+wait 400
+shot 03c
+B
+wait 60
+shot 04_after

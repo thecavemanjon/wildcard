@@ -1,0 +1,79 @@
+wait 400
+START
+wait 120
+A
+wait 300
+UP
+wait 20
+A
+wait 60
+DOWN
+wait 10
+A
+wait 60
+A
+wait 40
+A
+wait 40
+A
+wait 60
+A
+wait 60
+A
+wait 100
+DOWN 2
+A
+wait 15
+A
+wait 20
+DOWN 2
+A
+wait 15
+A
+wait 30
+shot 00_draft
+A
+wait 150
+A
+wait 250
+hold RIGHT 40
+wait 20
+A
+wait 60
+shot 01_brock
+autobattle 20000
+wait 60
+shot 10_cleared
+A
+wait 40
+shot 11_swapq
+A
+wait 40
+shot 12_theirs_msg
+A
+wait 100
+shot 13_theirs
+DOWN
+wait 10
+A
+wait 40
+shot 14_menu
+A
+wait 100
+shot 15_yours_msg
+A
+wait 100
+shot 16_yours
+DOWN
+wait 10
+A
+wait 40
+A
+wait 100
+shot 17_joined
+A
+wait 40
+shot 18_round2
+A
+wait 250
+shot 19_arena2

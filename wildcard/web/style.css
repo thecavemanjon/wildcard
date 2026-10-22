@@ -1,0 +1,125 @@
+/* The web player (DECISIONS 2026-10-21, look F2). --t is today's opponent's
+   colour, set by app.js from the results card's table. */
+:root { --t: #945221; --ink: #1b1b1f; --muted: #6b6b72; --line: #dcdcdc; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #fff; color: var(--ink); font-family: 'Rubik', system-ui, sans-serif; }
+img, canvas { image-rendering: pixelated; }
+button, .file { font: inherit; color: inherit; cursor: pointer; border: 0; }
+
+/* Banner: the title screen's stadium, clouds drifting as in the ROM */
+/* Whole-number scales only (2x here, 1x on phones), or the pixels come out uneven */
+.hero {
+  height: 190px; display: flex; justify-content: center; align-items: center; padding-bottom: 36px;
+  background-repeat: repeat-x; background-size: 512px 320px, 480px 320px; image-rendering: pixelated;
+  background-position: 0 -8px, center -8px; animation: drift 120s linear infinite;
+}
+@keyframes drift { to { background-position: -512px -8px, center -8px; } }
+@media (prefers-reduced-motion: reduce) { .hero { animation: none; } }
+.hero .wm { width: 375px; max-width: 80vw; }
+@media (max-width: 700px) {
+  .hero { height: 120px; padding-bottom: 22px; background-size: 256px 160px, 240px 160px;
+          background-position: 0 0, center 0; }
+  @keyframes drift { to { background-position: -256px 0, center 0; } }
+  .hero .wm { width: 250px; }
+}
+
+.nav { display: flex; justify-content: center; gap: 4px; background: var(--t); padding: 0 16px; }
+.nav a { color: #fff; padding: 12px 16px; font-weight: 600; text-decoration: none; }
+.nav a.on { background: #fff; color: var(--t); }
+
+/* Three columns when they fit; below that one column: the week as a strip, the game, then your six */
+.body { display: grid; grid-template-columns: 230px minmax(0, 1fr) 260px; grid-template-areas: "left play right";
+        gap: 24px; padding: 24px 32px 32px; align-items: start; max-width: 1400px; margin: 0 auto; }
+.left { grid-area: left; min-width: 0; }
+.play { grid-area: play; display: flex; flex-direction: column; gap: 12px; container-type: inline-size; } /* sizes the VS bar */
+.right { grid-area: right; display: flex; flex-direction: column; gap: 16px; }
+@media (max-width: 1179px) {
+  .body { grid-template-columns: minmax(0, 1fr); grid-template-areas: "left" "play" "right"; max-width: 900px; }
+  .right .party { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+}
+@media (max-width: 700px) { .body { padding: 16px; } }
+h2 { margin: 0 0 10px; font-size: 13px; font-weight: 700; text-transform: uppercase; }
+p { margin: 0; }
+
+/* This week as a metro line, a stop per day */
+.stops { position: relative; display: flex; flex-direction: column; gap: 4px; }
+.stops::before { content: ''; position: absolute; left: 21px; top: 20px; bottom: 20px; width: 4px; background: var(--line); }
+.stop { position: relative; display: flex; align-items: center; gap: 12px; }
+.head { flex: none; width: 46px; height: 46px; border-radius: 50%; border: 4px solid var(--c, #ccc);
+        background: #fff no-repeat center 2px / 120% auto; image-rendering: pixelated; }
+.stop.today .head { width: 56px; height: 56px; margin-left: -5px; }
+.stop.event .head { border-style: dashed; }
+.d { display: flex; flex-direction: column; }
+.day { font-size: 12px; color: var(--muted); }
+.nm { font-weight: 700; font-size: 18px; }
+.stop.today .nm { font-size: 26px; color: var(--t); line-height: 1.05; }
+.rule { font-size: 12px; color: #55555c; }
+@media (max-width: 1179px) {
+  .stops { flex-direction: row; justify-content: space-between; gap: 8px; overflow-x: auto; padding: 5px 0 4px; }
+  .stops::before { left: 32px; right: 32px; top: 26px; bottom: auto; width: auto; height: 4px; }
+  .day { white-space: nowrap; }
+  .stop { flex: 1 0 64px; flex-direction: column; gap: 4px; text-align: center; }
+  .stop.today .head { margin: -5px 0 0; }
+  .d { align-items: center; }
+  .nm { font-size: 16px; }
+  .stop.today .nm { font-size: 20px; }
+}
+
+/* You against today's opponent: navy for you, their colour for them, split on a diagonal,
+   comic VS letters in their colour on the seam (look 2f). --s is the trainer pics' size:
+   2x where the bar is wide, the whole 64px picture always inside the bar. */
+.vs { --s: 128px; position: relative; height: calc(var(--s) + 8px); overflow: hidden;
+      background: #2f3a5c; color: #fff; border-radius: 4px; }
+.vs .half { position: absolute; inset: 0 0 0 50%; background: var(--t); clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%); }
+.vs img { position: absolute; bottom: 4px; width: var(--s); height: var(--s); }
+.vs img.you { left: 12px; transform: scaleX(-1); } /* trainer pics face left: turn yours to face them */
+.vs img.opp { right: 12px; }
+.vs .nm { position: absolute; top: 50%; transform: translateY(-50%); max-width: calc(50% - var(--s) - 84px);
+          line-height: 1.05; font-weight: 800; font-size: 26px; text-transform: uppercase; } /* TATE & LIZA wraps */
+.vs .nm.you { left: calc(var(--s) + 22px); }
+.vs .nm.opp { right: calc(var(--s) + 22px); text-align: right; }
+.vs .nm small { display: block; font-size: 11px; font-weight: 600; letter-spacing: .1em; opacity: .75; }
+/* the outline is eight shadows round the letters (text-stroke draws inside them in Safari) */
+.v { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-6deg);
+     font-weight: 900; font-style: italic; font-size: 54px; line-height: 1; color: var(--t);
+     text-shadow: 3px 0 #fff, -3px 0 #fff, 0 3px #fff, 0 -3px #fff, 2px 2px #fff, -2px 2px #fff, 2px -2px #fff, -2px -2px #fff,
+                  0 7px var(--ink); }
+@container (max-width: 679px) { .vs { --s: 96px; } .vs .nm { font-size: 20px; } .v { font-size: 44px; } }
+@container (max-width: 479px) {
+  .vs { --s: 64px; } .vs .nm { font-size: 16px; max-width: calc(50% - var(--s) - 52px); } .vs .nm small { display: none; }
+  .v { font-size: 32px; text-shadow: 2px 0 #fff, -2px 0 #fff, 0 2px #fff, 0 -2px #fff, 0 5px var(--ink); }
+}
+
+/* The game */
+.screen { position: relative; background: #000; aspect-ratio: 3 / 2; border-radius: 4px; overflow: hidden; }
+.screen canvas { display: block; width: 100%; height: 100%; }
+.screen:fullscreen { border-radius: 0; display: flex; align-items: center; justify-content: center; }
+.screen:fullscreen canvas { width: auto; height: 100%; aspect-ratio: 3 / 2; max-width: 100%; }
+.loader { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+          gap: 10px; padding: 24px; text-align: center; color: #fff; background: #111; }
+.loader[hidden] { display: none; }
+.loader-title { font-size: 22px; font-weight: 700; }
+.loader-note { color: #b8b8c0; font-size: 14px; }
+.loader-buttons { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 8px; }
+.loader-error { color: #ff8a80; font-size: 14px; min-height: 1em; }
+.big { background: #ffcb05; color: var(--ink); font-weight: 700; font-size: 18px; padding: 12px 28px; border-radius: 4px; }
+.small { color: #b8b8c0; font-size: 14px; text-decoration: underline; padding: 8px; }
+.file input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.file:focus-within { outline: 2px solid #fff; outline-offset: 2px; }
+
+.ctrl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.hint { flex-grow: 1; font-size: 13px; color: var(--muted); }
+.ctrl button { background: #ffcb05; border-radius: 4px; font-weight: 600; padding: 10px 14px; }
+.ctrl button:disabled { opacity: .45; cursor: default; }
+
+/* Your six */
+.party { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.party li { display: flex; align-items: center; gap: 8px; padding: 2px 10px 2px 2px; background: #f4f4f4; border-radius: 4px; }
+.party .ic { width: 48px; height: 48px; }
+.party .nm { font-size: 15px; font-weight: 600; display: flex; flex-direction: column; line-height: 1.15; }
+.party small { font-size: 11px; font-weight: 500; color: var(--muted); }
+.party .ty { margin-left: auto; display: flex; flex-direction: column; gap: 2px; }
+.party .ty img { width: 48px; height: 24px; }
+.panel { background: var(--t); color: #fff; padding: 14px; border-radius: 4px; }
+.panel h2 { opacity: .85; }
+.note { color: var(--muted); font-size: 14px; }

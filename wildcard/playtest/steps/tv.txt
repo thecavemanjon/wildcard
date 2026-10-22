@@ -1,0 +1,21 @@
+wait 400
+START
+wait 120
+A
+wait 300
+hold LEFT 64
+wait 10
+UP
+wait 20
+A
+wait 60
+shot 01
+A
+wait 60
+shot 02
+A
+wait 60
+shot 03
+A
+wait 60
+shot 04

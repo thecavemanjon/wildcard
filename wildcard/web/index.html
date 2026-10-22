@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wild Card</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&amp;display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="hero" id="hero"><img class="wm" src="art/wordmark.png" alt="Wild Card"></header>
+<nav class="nav" aria-label="Main"><a class="on" href="#play">Today</a><a href="#how">How to play</a></nav>
+
+<div class="body">
+  <aside class="left" aria-label="This week">
+    <h2>This week</h2>
+    <div class="stops" id="stops"></div>
+  </aside>
+
+  <main class="play" id="play">
+    <div class="vs">
+      <span class="half"></span>
+      <img class="you" id="you-pic" src="art/player_brendan.png" alt="">
+      <span class="nm you"><small>Challenger</small>You</span>
+      <span class="v">VS</span>
+      <span class="nm opp"><small>Today</small><span id="opp-name"></span></span>
+      <img class="opp" id="opp-pic" alt="">
+    </div>
+
+    <div class="screen" id="screen">
+      <canvas id="game"></canvas>
+      <div class="loader" id="loader">
+        <p class="loader-title" id="loader-title">Bring your Wild Card ROM</p>
+        <p class="loader-note" id="loader-note">It stays in this browser. Nothing is uploaded.</p>
+        <div class="loader-buttons">
+          <button type="button" class="big" id="play-btn" hidden>Play</button>
+          <label class="big file" id="rom-label">Choose ROM (.gba)<input type="file" id="rom-input" accept=".gba"></label>
+          <label class="file small" id="sav-label">Bring a save (.sav), optional<input type="file" id="sav-input" accept=".sav,.srm"></label>
+        </div>
+        <p class="loader-error" id="loader-error" role="alert"></p>
+      </div>
+    </div>
+
+    <div class="ctrl">
+      <span class="hint">Arrows move · X is A · Z is B · Enter is START · Shift is SELECT · A and S are L and R · Space speeds up</span>
+      <button type="button" id="save-btn" disabled>Download save</button>
+      <button type="button" id="full-btn">Full screen</button>
+    </div>
+  </main>
+
+  <aside class="right">
+    <section aria-label="Your team">
+      <h2>Your team</h2>
+      <ol class="party" id="party"></ol>
+    </section>
+    <section class="panel" id="how">
+      <h2>How to play</h2>
+      <p>Same opponent and same six for everyone today, and one attempt. Turn the PC on in your room and pick DAILY BATTLE.</p>
+    </section>
+  </aside>
+</div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

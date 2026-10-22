@@ -12,7 +12,7 @@
 <header class="top" id="top">
   <span class="brand"><img class="wm" src="art/wordmark.png" alt="Wild Card"><span class="mascot" id="mascot"></span></span>
   <nav class="menu" aria-label="Main">
-    <a class="on" href="#daily" data-mode="daily">Daily</a><a href="#gauntlet" data-mode="gauntlet">Gauntlet</a><a href="#how">How to play</a>
+    <a class="on" href="#daily" data-mode="daily">Daily</a><a href="#gauntlet" data-mode="gauntlet">Gauntlet</a>
     <a class="cta" href="https://github.com/thecavemanjon/wildcard/releases/latest">Get the patch</a>
   </nav>
 </header>
@@ -33,7 +33,7 @@
   <main class="play" id="play">
     <div class="vs">
       <span class="half"></span>
-      <img class="you" id="you-pic" src="art/player_brendan.png" alt="">
+      <img class="you" id="you-pic" alt="" style="visibility: hidden">
       <span class="nm you"><small>Challenger</small><span id="you-name">You</span></span>
       <span class="v">VS</span>
       <span class="nm opp"><small>Today</small><span id="opp-name"></span></span>
@@ -64,6 +64,8 @@
 
     <div class="ctrl">
       <span class="hint">Arrows move · X is A · Z is B · Enter is START · Shift is SELECT · A and S are L and R · Space speeds up</span>
+      <button type="button" id="share-btn" hidden>Share today's result</button>
+      <button type="button" id="rom-btn" disabled title="Your patched game, for Delta, a handheld or any GBA emulator">Download game</button>
       <button type="button" id="save-btn" disabled>Download save</button>
       <button type="button" id="full-btn">Full screen</button>
     </div>

@@ -3,6 +3,7 @@
 // save stay in this browser (IndexedDB); nothing is uploaded.
 import { Nostalgist } from 'https://cdn.jsdelivr.net/npm/nostalgist@0.22.0/+esm';
 import { applyBps, crc32 } from './bps.js';
+import { readArt } from './art.js';
 
 const $ = (id) => document.getElementById(id);
 const pad = (n) => String(n).padStart(2, '0');
@@ -25,13 +26,29 @@ function banner(now) {
   $('top').style.backgroundImage = `url(art/stadium_${theme}.png)`;
 }
 
+// The pictures come out of the player's ROM (art.js); none until there is one.
+let art = null;
+const picture = (kind, key) => (art ? art[kind](key) : '');
+const trainerRow = (slot) => schedule.art.trainers[slot];
+
+// Type badges are the page's own, not the game's: a label in the type's colour.
+const TYPE_COLOURS = {
+  normal: '#a8a77a', fire: '#ee8130', water: '#6390f0', electric: '#f7d02c', grass: '#7ac74c', ice: '#96d9d6',
+  fighting: '#c22e28', poison: '#a33ea1', ground: '#e2bf65', flying: '#a98ff3', psychic: '#f95587', bug: '#a6b91a',
+  rock: '#b6a136', ghost: '#735797', dragon: '#6f35fc', dark: '#705746', steel: '#b7b7ce', fairy: '#d685ad',
+};
+const LIGHT_TYPES = new Set(['electric', 'ice', 'ground', 'steel', 'normal']); // dark letters on these
+
 // A stop on a metro line of faces: a day of the week, or a round of the gauntlet.
 function stop(slot, trainer, label, note, colour, big) {
   const el = document.createElement('div');
   el.className = 'stop' + (big ? ' today' : '');
   el.style.setProperty('--c', colour);
-  el.innerHTML = `<span class="head" style="background-image:url(art/head_${slot}.png)"></span>
+  el.innerHTML = `<span class="head"></span>
     <span class="d"><span class="day"></span><span class="nm"></span>${note ? '<span class="rule"></span>' : ''}</span>`;
+  const face = picture('head', trainerRow(slot));
+  if (face) el.querySelector('.head').style.backgroundImage = `url(${face})`;
+  else el.querySelector('.head').textContent = trainer.charAt(0); // no ROM yet: their initial
   el.querySelector('.day').textContent = label;
   el.querySelector('.nm').textContent = titleCase(trainer);
   if (note) el.querySelector('.rule').textContent = note;
@@ -50,10 +67,19 @@ function party(team, list = $('party')) {
   for (const mon of team) {
     const li = document.createElement('li');
     li.title = (mon.moves || []).join(', ');
-    li.innerHTML = `<img class="ic" src="art/icon_${mon.species}.png" alt="">
+    li.innerHTML = `<span class="ic"></span>
       <span class="nm"><span></span><small>Lv 50</small></span>
-      <span class="ty">${mon.types.map((t) => `<img src="art/type_${t.toLowerCase()}.png" alt="${t}">`).join('')}</span>`;
+      <span class="ty"></span>`;
+    const icon = picture('icon', mon.species);
+    if (icon) li.querySelector('.ic').style.backgroundImage = `url(${icon})`;
     li.querySelector('.nm span').textContent = mon.name;
+    for (const t of mon.types) {
+      const type = document.createElement('span');
+      type.textContent = t.toLowerCase();
+      type.style.background = TYPE_COLOURS[t.toLowerCase()] || '#888';
+      type.classList.toggle('light', LIGHT_TYPES.has(t.toLowerCase()));
+      li.querySelector('.ty').append(type);
+    }
     list.append(li);
   }
 }
@@ -96,8 +122,9 @@ function render(schedule, now) {
   const colour = (slot) => schedule.colours[slot] || '#945221';
   document.documentElement.style.setProperty('--t', colour(today.slot));
   $('opp-name').textContent = titleCase(today.trainer);
-  $('opp-pic').src = `art/trainer_${today.slot}.png`;
-  $('mascot').style.backgroundImage = `url(art/mascot_${today.slot}.png)`;
+  showPic($('opp-pic'), picture('trainer', trainerRow(today.slot)));
+  const mascot = picture('mascot', schedule.art.mascots[today.slot]);
+  $('mascot').style.backgroundImage = mascot ? `url(${mascot})` : '';
   document.title = `Wild Card: ${titleCase(today.trainer)} today`;
 
   const stops = $('stops');
@@ -153,6 +180,8 @@ function readPlayer(buf, layout) {
   return {
     gauntletWeek: layout.gauntletWeek ? u16(layout.gauntletWeek) : 0,
     gauntletBest: layout.gauntletBest ? u16(layout.gauntletBest) : 0,
+    ...Object.fromEntries(['lastDaily', 'lastResult', 'lastCard', 'winStreak', 'playStreak']
+      .map((k) => [k, layout[k] ? u16(layout[k]) : 0])), // the daily record
     name: gameText(new Uint8Array(buf, best.sectors[0] + layout.name, 8)), // 7 letters and the end mark
     gender: v.getUint8(best.sectors[0] + layout.gender),
     costume: sector === undefined ? 0 : v.getUint16(sector + (layout.costume % 3968), true),
@@ -166,9 +195,11 @@ async function showYou() {
   if (!schedule) return;
   const sram = await getFile('sram');
   const me = sram && schedule.save ? readPlayer(await sram.arrayBuffer(), schedule.save) : null;
-  $('you-pic').src = me && schedule.costumes.includes(me.costume) ? `art/costume_${me.costume}.png`
-    : `art/player_${me && me.gender ? 'may' : 'brendan'}.png`;
+  const costume = me ? schedule.art.costumes[me.costume] : undefined;
+  showPic($('you-pic'), picture('trainer', costume !== undefined ? costume : schedule.art.players[me && me.gender ? 1 : 0]));
   $('you-name').textContent = me && me.name ? me.name : 'You';
+  shareLine = me ? dailyShare(me, new Date()) : '';
+  $('share-btn').hidden = !shareLine;
   // the gauntlet: your furthest round this week, as the PC shows it (the save keeps it with its week)
   const today = schedule.days[iso(new Date())];
   const best = me && today && String(me.gauntletWeek) === today.week ? me.gauntletBest : 0;
@@ -178,6 +209,66 @@ async function showYou() {
   // where the ladder is a sideways strip (phones), open it at the round you're on
   const at = $('g-ladder').children[Math.max(best, 1) - 1];
   if (at) $('g-ladder').scrollLeft = at.offsetLeft - ($('g-ladder').clientWidth - at.offsetWidth) / 2;
+}
+
+// ---- the share line: today's daily from the save, as the results card has it ----
+
+// Sundial_DayNumber (src/sundial_record.c): days since the end of 1999.
+function dayNumber(year, month, day) {
+  const y = year - 2000;
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  return y * 365 + Math.floor((y + 3) / 4) - Math.floor((y + 99) / 100) + Math.floor((y + 399) / 400)
+    + [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334][month - 1] + day + (month > 2 && leap ? 1 : 0);
+}
+
+const RESULT_WON = 2, RESULT_LOST = 3; // SUNDIAL_RESULT_* in include/constants/sundial.h
+let shareLine = '';
+
+// "Pokémon Wild Card #11 vs Phoebe", one mark per Pokémon (standing or fainted, the card's
+// order) and the turns, the streaks, the page. Spoiler-free: no species. Empty until today's
+// daily is done.
+function dailyShare(me, now) {
+  const today = schedule.days[iso(now)];
+  const n = dayNumber(now.getFullYear(), now.getMonth() + 1, now.getDate());
+  if (!today || me.lastDaily !== n || ![RESULT_WON, RESULT_LOST].includes(me.lastResult)) return '';
+  const won = me.lastResult === RESULT_WON;
+  const lines = [`Pokémon Wild Card #${n - dayNumber(...schedule.launch) + 1} vs ${titleCase(today.trainer)}`];
+  const verdict = won ? 'Won' : 'Lost';
+  if (me.lastCard & 0x8000) { // the card's bits (SundialCard_ShareBits); an older save has none
+    const marks = today.team.map((_, i) => (me.lastCard >> (8 + i) & 1 ? '❌' : '🟢')).join('');
+    const turns = me.lastCard & 0xFF;
+    lines.push(`${marks} ${verdict.toLowerCase()} in ${turns} turn${turns === 1 ? '' : 's'}`);
+  } else {
+    lines.push(verdict);
+  }
+  const streaks = [won && me.winStreak > 1 ? `Win streak ${me.winStreak}` : '',
+                   me.playStreak > 1 ? `${me.playStreak} days in a row` : ''].filter(Boolean);
+  if (streaks.length) lines.push(streaks.join(' · '));
+  lines.push(location.origin + location.pathname);
+  return lines.join('\n');
+}
+
+$('share-btn').addEventListener('click', async () => {
+  if (!shareLine) return;
+  if (navigator.share) {
+    try { await navigator.share({ text: shareLine }); return; } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  await navigator.clipboard.writeText(shareLine);
+  $('share-btn').textContent = 'Copied!';
+  setTimeout(() => { $('share-btn').textContent = 'Share today\'s result'; }, 2000);
+});
+
+function showPic(img, url) {
+  img.style.visibility = url ? '' : 'hidden';
+  if (url) img.src = url;
+}
+
+// After the ROM in this browser changes (picked, patched, updated): its pictures, then redraw.
+async function loadArt() {
+  const rom = await getFile('rom');
+  art = rom && schedule ? readArt(new Uint8Array(await rom.arrayBuffer()), schedule.art) : null;
+  $('rom-btn').disabled = !rom;
+  if (schedule) { render(schedule, new Date()); showYou(); }
 }
 
 // ---- the ROM and the save, kept in IndexedDB ----
@@ -257,6 +348,7 @@ async function patchEmerald() {
   const rom = applyBps(emerald, patch); // checks the Emerald, the patch and the result
   await putFile('rom', new Blob([rom]));
   await putFile('rom-crc', patchInfo.target_crc);
+  loadArt();
 }
 
 // ---- the emulator ----
@@ -372,6 +464,7 @@ $('rom-input').addEventListener('change', async (e) => {
   if (!file) return;
   const problem = await takeRom(file);
   showLoader(await gameState(), problem);
+  loadArt();
 });
 
 $('sav-input').addEventListener('change', async (e) => {
@@ -392,6 +485,18 @@ $('save-btn').addEventListener('click', async () => {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(sram);
   a.download = 'wildcard.sav';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+// Your patched game as a file, for Delta, a handheld or a desktop emulator. It's made here from
+// your own Emerald; the site never has it.
+$('rom-btn').addEventListener('click', async () => {
+  const rom = await getFile('rom');
+  if (!rom) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(rom);
+  a.download = 'Wild Card.gba';
   a.click();
   URL.revokeObjectURL(a.href);
 });
@@ -476,6 +581,7 @@ async function devStart(mode) {
   const rom = await fetch('dev/rom.gba');
   if (!rom.ok) return;
   await putFile('rom', await rom.blob());
+  loadArt();
   if (!(await getFile('sram'))) {
     const sav = await fetch('dev/save.sav');
     if (sav.ok) { await putFile('sram', await sav.blob()); showYou(); }
@@ -485,7 +591,7 @@ async function devStart(mode) {
 
 const now = new Date();
 loadSchedule()
-  .then((s) => { schedule = s; render(s, now); showYou(); })
+  .then((s) => { schedule = s; render(s, now); showYou(); loadArt(); })
   .catch((e) => { $('stops').innerHTML = `<p class="note"></p>`; $('stops').firstChild.textContent = e.message; });
 const dev = new URLSearchParams(location.search).get('dev');
 loadPatchInfo().then(async () => {

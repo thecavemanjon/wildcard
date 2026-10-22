@@ -498,6 +498,7 @@ void DailyUnderdog_RecordResult(void)
     LoadRecord(&record);
     Sundial_FinishDaily(&record, won);
     StoreRecord(&record);
+    VarSet(VAR_UNDERDOG_LAST_CARD, SundialCard_ShareBits());
     RecordTrophy(won);
     if (won) // the only money in the game; the Hall of Fame saves it
     {

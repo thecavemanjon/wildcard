@@ -4284,6 +4284,12 @@ movement_type_def(MovementType_FaceDirection, gMovementTypeFuncs_FaceDirection)
 
 bool8 MovementType_FaceDirection_Step0(struct ObjectEvent *objectEvent, struct Sprite *sprite)
 {
+    // Daily Underdog: the bedroom's stairwell sits half a block right of the grid, so its box
+    // is drawn half a block left to stand square in the doorway
+    if (objectEvent->graphicsId == OBJ_EVENT_GFX_MOVING_BOX
+     && gSaveBlock1Ptr->location.mapGroup == MAP_GROUP(MAP_UNDERDOG_BEDROOM)
+     && gSaveBlock1Ptr->location.mapNum == MAP_NUM(MAP_UNDERDOG_BEDROOM))
+        sprite->x2 = -8;
     ClearObjectEventMovement(objectEvent, sprite);
     ObjectEventSetSingleMovement(objectEvent, sprite, GetFaceDirectionMovementAction(objectEvent->facingDirection));
     sprite->sTypeFuncId = 1;

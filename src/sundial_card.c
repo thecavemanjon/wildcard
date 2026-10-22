@@ -216,6 +216,13 @@ void SundialCard_Capture(u16 trainerId, bool32 won, const u8 *seedWord, u32 year
     }
 }
 
+// The card in one var for the web player's share line: turns in the low byte, the
+// fainted party slots above, and the top bit so a save from before this reads as none.
+u16 SundialCard_ShareBits(void)
+{
+    return 0x8000 | (sCard.faintedMask << 8) | sCard.turns;
+}
+
 // Called after Capture, for a PRACTICE battle.
 void SundialCard_SetPractice(void)
 {

@@ -65,9 +65,9 @@ SHA-1 `f3ae088181bf583e55daf962a92bb46f4f1d07b7`.
 
 You need devkitARM and the usual pokeemerald-expansion toolchain
 ([INSTALL.md](INSTALL.md)). `make release` builds the ROM players get, and
-`make check TESTS="Sundial"` runs the tests for the daily logic. Our code is in `src/`
+`make check TESTS="Sundial"` runs the tests for the daily logic. Code is in `src/`
 (files starting `daily_underdog`, `sundial_` and `wildcard_`, after the game's working
-titles), and our tools are in [`wildcard/`](wildcard/).
+titles), and tools are in [`wildcard/`](wildcard/).
 
 ## Credits
 

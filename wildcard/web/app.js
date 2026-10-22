@@ -194,6 +194,8 @@ let schedule = null;
 async function showYou() {
   if (!schedule) return;
   const sram = await getFile('sram');
+  $('save-btn').disabled = !sram && !emu; // a save can be downloaded before Play too
+  $('reset-btn').hidden = !sram || Boolean(emu);
   const me = sram && schedule.save ? readPlayer(await sram.arrayBuffer(), schedule.save) : null;
   const costume = me ? schedule.art.costumes[me.costume] : undefined;
   showPic($('you-pic'), picture('trainer', costume !== undefined ? costume : schedule.art.players[me && me.gender ? 1 : 0]));
@@ -477,6 +479,18 @@ $('sav-input').addEventListener('change', async (e) => {
 });
 
 $('play-btn').addEventListener('click', launch);
+
+// Start over: deletes the save kept in this browser (the patched game stays), so Play begins a
+// new game. Only before Play: a running game holds its save and would write it straight back.
+$('reset-btn').addEventListener('click', async () => {
+  if (emu || !confirm('Delete your Wild Card save in this browser and start a new game?\n\n'
+    + 'Your record, streaks, money and collection go with it. To keep a copy, press Cancel, then Download save.')) return;
+  await putFile('sram', null);
+  lastSram = null;
+  await showYou();
+  showLoader(await gameState());
+  $('loader-note').textContent = 'Save deleted. Press Play for a new game.';
+});
 
 $('save-btn').addEventListener('click', async () => {
   await saveNow();

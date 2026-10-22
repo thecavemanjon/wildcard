@@ -23,7 +23,17 @@ import balance  # noqa: E402
 
 SIM_SCHEDULE = 3
 ART = os.path.join(HERE, 'art')
-EVENTS = {0: '', 1: 'Halloween', 2: 'Christmas', 3: 'Easter'}
+
+
+def event_names():
+    """enum SundialEvent (include/sundial_seed.h), in order: 0 is no event."""
+    h = open(os.path.join(GAME, 'include', 'sundial_seed.h')).read()
+    body = re.search(r'enum SundialEvent\s*\{([^}]*)\}', h).group(1)
+    names = re.findall(r'SUNDIAL_EVENT_(\w+)', body)
+    return {i: '' if n == 'NONE' else n.title() for i, n in enumerate(names)}
+
+
+EVENTS = event_names()
 
 
 def run_rom(start, days):

@@ -9,11 +9,6 @@ Radical Red; none of their files.
 - **Costumes** from RichardPT's Gen 3-style kits (terms and per-kit credits
   under Candidates below): Serena, Ethan, Lyra, Kris, Lucas, Hilbert, Calem.
   Converted to GBA format by us (halved from 2x, palettes cut to 15 colours).
-- **Grookey front sprite** (normal and shiny) by lennybitao, "Grookey sprite
-  GBA and NDS" (DeviantArt 830957547, 2020). Terms, verbatim: "feel FREE to
-  use, just give me some credit and let me know where and how you used it."
-  Converted by `wildcard/art/sprites/build_grookey.py` (the sheet's sitting
-  frame, mirrored; the battle back is still the expansion's).
 - **Greninja overworld** by Jhony-Rex, "Greninja: sprite" (DeviantArt
   559969095, 2015). Converted by `wildcard/art/sprites/build_greninja_ow.py` (down, right
   mirrored for left, up; 28 colours merged to 15; shiny from the old palette).

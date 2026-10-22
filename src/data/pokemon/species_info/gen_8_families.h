@@ -39,7 +39,7 @@ const struct SpeciesInfo gSpeciesInfoGen8[] =
         .trainerScale = 256,
         .trainerOffset = 0,
         .frontPic = gMonFrontPic_Grookey,
-        .frontPicSize = MON_COORDS_SIZE(48, 48), // Daily Underdog: lennybitao's sprite
+        .frontPicSize = MON_COORDS_SIZE(40, 48),
         .frontPicYOffset = 12,
         .frontAnimFrames = ANIM_FRAMES(
             ANIMCMD_FRAME(1, 30),

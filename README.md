@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="wildcard/readme/title.png" width="480" alt="The Pokémon Wild Card Version title screen">
+  <img src="wildcard/readme/title.gif" width="480" alt="The Pokémon Wild Card Version title screen">
 </p>
 
 <h1 align="center">Pokémon Wild Card</h1>
@@ -58,16 +58,16 @@ SHA-1 `f3ae088181bf583e55daf962a92bb46f4f1d07b7`.
 - **Your room.** Spend your winnings on followers, costumes and room themes.
 
 <p align="center">
-  <img src="wildcard/readme/room.png" width="288" alt="A themed bedroom with followers lounging on the rug">
+  <img src="wildcard/readme/room.gif" width="288" alt="A themed bedroom with followers lounging on the rug">
 </p>
 
 ## Building
 
 You need devkitARM and the usual pokeemerald-expansion toolchain
 ([INSTALL.md](INSTALL.md)). `make release` builds the ROM players get, and
-`make check TESTS="Sundial"` runs the tests for the daily logic. Our code is in
-`src/daily_underdog.c`, `src/sundial_*.c` and `src/wildcard_*.c`, and our tools are
-in [`wildcard/`](wildcard/).
+`make check TESTS="Sundial"` runs the tests for the daily logic. Our code is in `src/`
+(files starting `daily_underdog`, `sundial_` and `wildcard_`, after the game's working
+titles), and our tools are in [`wildcard/`](wildcard/).
 
 ## Credits
 

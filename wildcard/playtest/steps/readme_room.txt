@@ -1,5 +1,7 @@
-# A bedroom screenshot from the repo's save. The README's room.png came from a phone
-# screenshot instead, sampled back to game pixels: 5.62 screen pixels each.
+# A bedroom screenshot from the repo's save. The README's room.gif is filmed from a save
+# downloaded from the web player instead: boot, continue, a step down and a step left, a
+# 2-frame tap of DOWN to face the camera, then a shot every 4 frames, cropped to the room
+# (48, 0, 192, 120) at 4x.
 wait 400
 START
 wait 120
